@@ -21,8 +21,8 @@ from pathlib import Path
 import jwt
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session, send_file, make_response
 from flask_sqlalchemy import SQLAlchemy
-from flask_bcrypt import Bcrypt
-from flask_migrate import Migrate   
+from flask_bcrypt import Bcrypt  
+from flask_migrate import Migrate 
 from dotenv import load_dotenv
 from geopy.geocoders import Nominatim
 from geopy.distance import geodesic
@@ -42,8 +42,10 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'clave-secreta-por-defecto-cambiar-en-produccion')
 
 database_url = os.environ.get('DATABASE_URL', 'sqlite:///local.db')
+
 if database_url.startswith('postgres://'):
     database_url = database_url.replace('postgres://', 'postgresql://', 1)
+
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
@@ -55,7 +57,6 @@ app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=1)
 
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
-from flask_migrate import Migrate
 migrate = Migrate(app, db)
 
 
