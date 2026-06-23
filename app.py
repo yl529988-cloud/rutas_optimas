@@ -41,7 +41,7 @@ load_dotenv()
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'clave-secreta-por-defecto-cambiar-en-produccion')
 
-database_url = os.environ.get('DATABASE_URL', 'sqlite:///local.db')
+database_url = os.environ.get('DATABASE_URL')
 
 if database_url.startswith('postgres://'):
     database_url = database_url.replace('postgres://', 'postgresql://', 1)
