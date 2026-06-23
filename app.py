@@ -54,6 +54,13 @@ app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=1)
 
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
+with app.app_context():
+    try:
+        db.create_all()
+        print("✅ TABLAS CREADAS")
+    except Exception as e:
+        print(f"❌ ERROR CREANDO TABLAS: {e}")
+
 from flask_migrate import Migrate
 migrate = Migrate(app, db)
 
@@ -1681,12 +1688,6 @@ def init_db():
 # Inicializar base de datos
 # ============================================
 
-with app.app_context():
-    try:
-        db.create_all()
-        print("✅ Base de datos inicializada")
-    except Exception as e:
-        print(f"❌ Error inicializando base de datos: {e}")
 
 # ============================================
 # Punto de entrada principal
