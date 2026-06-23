@@ -53,6 +53,8 @@ app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=1)
 
 db = SQLAlchemy(app)
+with app.app_context():
+    db.create_all()
 bcrypt = Bcrypt(app)
 from flask_migrate import Migrate
 migrate = Migrate(app, db)
