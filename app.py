@@ -54,13 +54,6 @@ app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=1)
 
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
-with app.app_context():
-    try:
-        db.create_all()
-        print("✅ TABLAS CREADAS")
-    except Exception as e:
-        print(f"❌ ERROR CREANDO TABLAS: {e}")
-
 from flask_migrate import Migrate
 migrate = Migrate(app, db)
 
@@ -1684,16 +1677,19 @@ def init_db():
         return jsonify({'success': True, 'message': 'Tablas creadas correctamente'})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
-# ============================================
-# Inicializar base de datos
-# ============================================
-
 
 # ============================================
 # Punto de entrada principal
 # ============================================
 
 if __name__ == '__main__':
+    with app.app_context():
+        try:
+            db.create_all()
+            print("✅ Base de datos inicializada")
+        except Exception as e:
+            print(f"❌ Error inicializando base de datos: {e}")
+
     app.run(debug=True)
 
     print("🚀 Iniciando aplicación con reCAPTCHA v2...")
