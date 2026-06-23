@@ -1,6 +1,6 @@
 # app.py - SISTEMA COMPLETO DE RUTAS ÓPTIMAS PARA MÉXICO
 import os
-app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
+
 import json
 import math
 import random
@@ -38,27 +38,21 @@ from cryptography.hazmat.backends import default_backend
 load_dotenv()
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'clave-secreta-por-defecto-cambiar-en-produccion')
 
+# CONFIG PRIMERO
 database_url = os.environ.get('DATABASE_URL', 'sqlite:///local.db')
+
 if database_url.startswith('postgres://'):
     database_url = database_url.replace('postgres://', 'postgresql://', 1)
+
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-# Configuración de seguridad de sesiones
-app.config['SESSION_COOKIE_SECURE'] = False  # True en producción con HTTPS
-app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=1)
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev')
+app.config['SESSION_COOKIE_SECURE'] = False
 
 db = SQLAlchemy(app)
-with app.app_context():
-    db.create_all()
 bcrypt = Bcrypt(app)
-from flask_migrate import Migrate
 migrate = Migrate(app, db)
-
 
 # Configuración de reCAPTCHA v2
 RECAPTCHA_SECRET_KEY = os.environ.get('RECAPTCHA_SECRET_KEY', '6LeU7SYsAAAAAEh5HWnKMR3zYss9DPfgQos3J3Pj')
