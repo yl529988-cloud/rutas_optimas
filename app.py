@@ -1,6 +1,6 @@
 # app.py - SISTEMA COMPLETO DE RUTAS ÓPTIMAS PARA MÉXICO
 import os
-
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
 import json
 import math
 import random
