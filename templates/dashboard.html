@@ -1,0 +1,481 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Rutas Óptimas{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <h1>Bienvenido, {{ session.username }}</h1>
+        <p>Encuentra la ruta más eficiente para tu viaje</p>
+    </div>
+    
+    <div class="dashboard-grid">
+        <!-- Panel de Rutas -->
+        <div class="dashboard-section">
+            <div class="route-finder">
+                <h2>Encontrar Ruta Óptima</h2>
+                <form id="route-form" class="route-form">
+                    <div class="form-row">
+                        <div class="form-group">
+
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-full">Encontrar Ruta Óptima</button>
+                </form>
+                
+                <div id="route-result" class="route-result" style="display: none;">
+                    <h3>Ruta Encontrada</h3>
+                    <div id="route-details" class="route-details"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel de Firma Digital -->
+        <div class="dashboard-section">
+            <div class="digital-signature-section">
+                <h2>📄 Firma Digital</h2>
+                <p>Firma y verifica documentos PDF de forma segura</p>
+                
+                <div class="signature-actions">
+                    <a href="{{ url_for('digital_signature') }}" class="btn btn-primary" style="display: block; margin-bottom: 1rem; text-align: center;">
+                        🚀 Ir al Sistema de Firma Digital
+                    </a>
+                    
+                    <div class="quick-actions">
+                        <button class="btn btn-outline" onclick="showQuickUpload()" style="width: 100%; margin-bottom: 0.5rem;">
+                            📤 Subir PDF Rápido
+                        </button>
+                        <button class="btn btn-outline" onclick="showQuickVerify()" style="width: 100%;">
+                            ✅ Verificar Firma Rápida
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Documentos recientes -->
+                {% if signed_docs %}
+                <div class="recent-documents" style="margin-top: 1.5rem;">
+                    <h4>📋 Documentos Recientes</h4>
+                    <div class="documents-list">
+                        {% for doc in signed_docs %}
+                        <div class="document-item">
+                            <div class="doc-info">
+                                <strong>{{ doc.filename }}</strong>
+                                <span class="doc-date">{{ doc.created_at.strftime('%d/%m/%Y') }}</span>
+                            </div>
+                            <div class="doc-status {% if doc.signature_verified %}verified{% else %}not-verified{% endif %}">
+                                {% if doc.signature_verified %}
+                                    ✅ Verificado
+                                {% else %}
+                                    ❌ No verificado
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- SECCIÓN FACE ID -->
+    <div class="face-id-section" style="margin-top: 2rem; padding: 1.5rem; background: #f8f9fa; border-radius: 8px;">
+        <h2>📷 Seguridad con Face ID</h2>
+        <p>Configura el reconocimiento facial para una autenticación más rápida y segura.</p>
+        
+        <div style="display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap;">
+            <a href="{{ url_for('face_id_setup') }}" class="btn" style="background: #007bff; color: white; padding: 0.75rem 1.5rem; text-decoration: none; border-radius: 5px;">
+                Configurar Face ID
+            </a>
+            <a href="{{ url_for('face_id_login') }}" class="btn" style="background: #28a745; color: white; padding: 0.75rem 1.5rem; text-decoration: none; border-radius: 5px;">
+                Login con Face ID
+            </a>
+        </div>
+        
+        <div style="margin-top: 1rem; font-size: 0.9em; color: #666;">
+            <p><strong>Características:</strong></p>
+            <ul style="margin-left: 1.5rem;">
+                <li>Reconocimiento facial avanzado</li>
+                <li>Verificación en tiempo real</li>
+                <li>Logs de seguridad completos</li>
+                <li>Integrado con reCAPTCHA</li>
+            </ul>
+        </div>
+    </div>
+    <!-- FIN SECCIÓN FACE ID -->
+    
+    <div class="recent-trips">
+        <h2>Tus Viajes Recientes</h2>
+        {% if trips %}
+            <div class="trips-list">
+                {% for trip in trips %}
+                    <div class="trip-card">
+                        <div class="trip-info">
+                            <h4>{{ trip.start_location }} → {{ trip.end_location }}</h4>
+                            
+                            {% if trip.route_details %}
+                                {% if trip.route_details.distance is defined and trip.route_details.distance is not none %}
+                                <p>Distancia: {{ trip.route_details.distance|round(2) }} km</p>
+                                {% endif %}
+                                
+                                {% if trip.route_details.estimated_time is defined and trip.route_details.estimated_time is not none %}
+                                <p>Tiempo estimado: {{ trip.route_details.estimated_time|round(0) }} min</p>
+                                {% endif %}
+                                
+                                {% if trip.route_details.path is defined and trip.route_details.path %}
+                                <p><strong>Ruta:</strong> 
+                                    {% for ciudad in trip.route_details.path %}
+                                        {{ ciudad }}{% if not loop.last %} → {% endif %}
+                                    {% endfor %}
+                                </p>
+                                {% endif %}
+                                
+                                <!-- Para viajes del nuevo sistema de mapas -->
+                                {% if trip.route_details.route_options is defined %}
+                                <p><strong>Tipo:</strong> Ruta con múltiples opciones</p>
+                                {% endif %}
+                                
+                            {% else %}
+                                <p class="text-muted">Sin detalles de ruta disponibles</p>
+                            {% endif %}
+                        </div>
+                        <div class="trip-date">
+                            {{ trip.created_at.strftime('%d/%m/%Y') }}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="no-trips">Aún no has realizado ningún viaje.</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal para subida rápida -->
+<div id="quickUploadModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <span class="close" onclick="closeQuickUpload()">&times;</span>
+        <h3>📤 Subir PDF para Firma</h3>
+        <form id="quickUploadForm" enctype="multipart/form-data">
+            <div class="form-group">
+                <label>Seleccionar archivo PDF:</label>
+                <input type="file" name="pdf_file" accept=".pdf" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Firmar y Descargar</button>
+        </form>
+    </div>
+</div>
+
+<!-- Modal para verificación rápida -->
+<div id="quickVerifyModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <span class="close" onclick="closeQuickVerify()">&times;</span>
+        <h3>✅ Verificar Firma PDF</h3>
+        <form id="quickVerifyForm" enctype="multipart/form-data">
+            <div class="form-group">
+                <label>Seleccionar PDF firmado:</label>
+                <input type="file" name="signed_pdf" accept=".pdf" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Verificar Firma</button>
+        </form>
+        <div id="verificationResult" style="margin-top: 1rem;"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Sistema de rutas
+    document.getElementById('route-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        
+        fetch('/find_route', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const resultDiv = document.getElementById('route-result');
+                const detailsDiv = document.getElementById('route-details');
+                
+                detailsDiv.innerHTML = `
+                    <p><strong>Ruta:</strong> ${data.path.join(' → ')}</p>
+                    <p><strong>Distancia:</strong> ${data.distance.toFixed(2)} km</p>
+                    <p><strong>Tiempo estimado:</strong> ${data.estimated_time.toFixed(2)} minutos</p>
+                `;
+                
+                resultDiv.style.display = 'block';
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al buscar ruta');
+        });
+    });
+
+    // Sistema de firma digital - Funciones rápidas
+    function showQuickUpload() {
+        document.getElementById('quickUploadModal').style.display = 'block';
+    }
+
+    function closeQuickUpload() {
+        document.getElementById('quickUploadModal').style.display = 'none';
+    }
+
+    function showQuickVerify() {
+        document.getElementById('quickVerifyModal').style.display = 'block';
+    }
+
+    function closeQuickVerify() {
+        document.getElementById('quickVerifyModal').style.display = 'none';
+        document.getElementById('verificationResult').innerHTML = '';
+    }
+
+    // Subida rápida de PDF
+    document.getElementById('quickUploadForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const submitBtn = this.querySelector('button');
+        const originalText = submitBtn.textContent;
+        
+        submitBtn.textContent = '🔄 Firmando...';
+        submitBtn.disabled = true;
+        
+        fetch('/api/digital-signature/upload', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            if (response.ok) {
+                return response.blob();
+            } else {
+                return response.json().then(err => { throw new Error(err.error); });
+            }
+        })
+        .then(blob => {
+            // Crear enlace de descarga
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'documento_firmado.pdf';
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+            
+            closeQuickUpload();
+            this.reset();
+            alert('✅ PDF firmado y descargado correctamente');
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('❌ Error: ' + error.message);
+        })
+        .finally(() => {
+            submitBtn.textContent = originalText;
+            submitBtn.disabled = false;
+        });
+    });
+
+    // Verificación rápida de firma
+    document.getElementById('quickVerifyForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const submitBtn = this.querySelector('button');
+        const resultDiv = document.getElementById('verificationResult');
+        const originalText = submitBtn.textContent;
+        
+        submitBtn.textContent = '🔄 Verificando...';
+        submitBtn.disabled = true;
+        resultDiv.innerHTML = '<p>🔍 Verificando firma...</p>';
+        
+        fetch('/api/digital-signature/verify', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                if (data.valid) {
+                    resultDiv.innerHTML = `
+                        <div style="background: #d4edda; color: #155724; padding: 1rem; border-radius: 5px;">
+                            <h4>✅ ${data.message}</h4>
+                            <p>Documento auténtico y no modificado</p>
+                            ${data.document_exists ? '<p>📁 Documento registrado en el sistema</p>' : ''}
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div style="background: #f8d7da; color: #721c24; padding: 1rem; border-radius: 5px;">
+                            <h4>❌ ${data.message}</h4>
+                            <p>La firma no es válida o el documento ha sido alterado</p>
+                        </div>
+                    `;
+                }
+            } else {
+                resultDiv.innerHTML = `
+                    <div style="background: #f8d7da; color: #721c24; padding: 1rem; border-radius: 5px;">
+                        <h4>❌ Error</h4>
+                        <p>${data.error}</p>
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            resultDiv.innerHTML = `
+                <div style="background: #f8d7da; color: #721c24; padding: 1rem; border-radius: 5px;">
+                    <h4>❌ Error de conexión</h4>
+                    <p>No se pudo verificar la firma</p>
+                </div>
+            `;
+        })
+        .finally(() => {
+            submitBtn.textContent = originalText;
+            submitBtn.disabled = false;
+        });
+    });
+
+    // Cerrar modales al hacer click fuera
+    window.onclick = function(event) {
+        const uploadModal = document.getElementById('quickUploadModal');
+        const verifyModal = document.getElementById('quickVerifyModal');
+        
+        if (event.target === uploadModal) {
+            closeQuickUpload();
+        }
+        if (event.target === verifyModal) {
+            closeQuickVerify();
+        }
+    }
+</script>
+
+<style>
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        margin-bottom: 2rem;
+    }
+    
+    .dashboard-section {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .digital-signature-section {
+        text-align: center;
+    }
+    
+    .signature-actions {
+        margin: 1.5rem 0;
+    }
+    
+    .quick-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .recent-documents {
+        border-top: 1px solid #e9ecef;
+        padding-top: 1rem;
+    }
+    
+    .documents-list {
+        max-height: 200px;
+        overflow-y: auto;
+    }
+    
+    .document-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem;
+        border-bottom: 1px solid #f8f9fa;
+    }
+    
+    .doc-info {
+        flex: 1;
+    }
+    
+    .doc-info strong {
+        display: block;
+        font-size: 0.9rem;
+    }
+    
+    .doc-date {
+        font-size: 0.8rem;
+        color: #666;
+    }
+    
+    .doc-status {
+        font-size: 0.8rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 12px;
+        font-weight: bold;
+    }
+    
+    .doc-status.verified {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .doc-status.not-verified {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    
+    /* Modal styles */
+    .modal {
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    .modal-content {
+        background: white;
+        padding: 2rem;
+        border-radius: 10px;
+        width: 90%;
+        max-width: 500px;
+        position: relative;
+    }
+    
+    .close {
+        position: absolute;
+        right: 1rem;
+        top: 1rem;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: #666;
+    }
+    
+    .close:hover {
+        color: #000;
+    }
+    
+    @media (max-width: 768px) {
+        .dashboard-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}

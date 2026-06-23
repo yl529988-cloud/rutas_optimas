@@ -1,0 +1,665 @@
+{% extends "base.html" %}
+
+{% block title %}Configurar Face ID - Rutas Óptimas{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <h1>📷 Configurar Face ID</h1>
+        <p>Registra tu rostro para un acceso rápido y seguro</p>
+    </div>
+
+    <div class="face-id-setup">
+        <!-- Estado actual -->
+        <div class="status-card" id="statusCard">
+            <h4>Estado Actual</h4>
+            <p id="statusText">
+                {% if user.face_id_enabled %}
+                    ✅ Face ID activado
+                {% else %}
+                    ⚠️ Face ID no configurado
+                {% endif %}
+            </p>
+        </div>
+
+        <!-- Estado de carga de modelos -->
+        <div id="modelStatus">
+            <div class="loading-model">
+                <p>🔄 Cargando modelos de reconocimiento facial...</p>
+                <div id="modelProgress">
+                    <div id="modelProgressBar"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cámara para registro -->
+        <div class="camera-section">
+            <h3>Registrar Tu Rostro</h3>
+            <p>Asegúrate de tener buena iluminación y mirar directamente a la cámara</p>
+            
+            <div class="camera-container">
+                <video id="video" width="400" height="300" autoplay></video>
+                <canvas id="canvas" width="400" height="300"></canvas>
+                
+                <div id="cameraPlaceholder" class="camera-placeholder">
+                    <div class="placeholder-content">
+                        <div class="placeholder-icon">📷</div>
+                        <p>Cámara no activada</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="camera-controls">
+                <button id="startCamera" class="btn btn-primary">
+                    🎥 Activar Cámara
+                </button>
+                <button id="capture" class="btn btn-success" disabled>
+                    📸 Capturar Rostro
+                </button>
+                <button id="retake" class="btn btn-warning">
+                    🔄 Tomar Otra Foto
+                </button>
+                <button id="retryRegister" class="btn btn-danger">
+                    🔄 Reintentar Registro
+                </button>
+            </div>
+            
+            <div id="preview" class="preview-container">
+                <h4>Vista Previa:</h4>
+                <img id="previewImage" src="" alt="Vista previa">
+                <div class="preview-actions">
+                    <button id="registerFace" class="btn btn-success">
+                        ✅ Registrar Rostro
+                    </button>
+                </div>
+            </div>
+
+            <div id="detectionInfo" class="detection-info">
+                <h4>Información de Detección:</h4>
+                <div id="faceDetails"></div>
+            </div>
+        </div>
+
+        <!-- Información del usuario -->
+        {% if user.face_id_enabled and user.face_data %}
+        <div class="face-info">
+            <h4>Información del Rostro Registrado</h4>
+            <div class="face-details">
+                <p><strong>Registrado:</strong> {{ user.face_data.registered_at }}</p>
+                <p><strong>Último uso:</strong> {% if user.last_face_used %}{{ user.last_face_used }}{% else %}Nunca{% endif %}</p>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Acciones -->
+        <div class="actions-section">
+            {% if user.face_id_enabled %}
+            <button id="disableFaceId" class="btn btn-danger">
+                Desactivar Face ID
+            </button>
+            {% endif %}
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
+                Volver al Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Cargar TensorFlow.js y Face-API.js -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.18.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.1/dist/face-api.min.js"></script>
+
+<script>
+    class FaceIDSetup {
+        constructor() {
+            this.video = document.getElementById('video');
+            this.canvas = document.getElementById('canvas');
+            this.cameraPlaceholder = document.getElementById('cameraPlaceholder');
+            this.startBtn = document.getElementById('startCamera');
+            this.captureBtn = document.getElementById('capture');
+            this.retakeBtn = document.getElementById('retake');
+            this.registerBtn = document.getElementById('registerFace');
+            this.retryBtn = document.getElementById('retryRegister');
+            this.preview = document.getElementById('preview');
+            this.previewImage = document.getElementById('previewImage');
+            this.statusText = document.getElementById('statusText');
+            this.statusCard = document.getElementById('statusCard');
+            this.disableBtn = document.getElementById('disableFaceId');
+            this.modelStatus = document.getElementById('modelStatus');
+            this.modelProgressBar = document.getElementById('modelProgressBar');
+            this.detectionInfo = document.getElementById('detectionInfo');
+            this.faceDetails = document.getElementById('faceDetails');
+            
+            this.stream = null;
+            this.capturedImage = null;
+            this.faceDescriptor = null;
+            this.modelsLoaded = false;
+            
+            this.initEvents();
+            this.loadModels();
+        }
+        
+        initEvents() {
+            this.startBtn.addEventListener('click', () => this.startCamera());
+            this.captureBtn.addEventListener('click', () => this.captureFace());
+            this.retakeBtn.addEventListener('click', () => this.retakePhoto());
+            this.registerBtn.addEventListener('click', () => this.registerFace());
+            this.retryBtn.addEventListener('click', () => this.retryRegistration());
+            
+            if (this.disableBtn) {
+                this.disableBtn.addEventListener('click', () => this.disableFaceID());
+            }
+        }
+        
+        async loadModels() {
+            try {
+                this.showMessage('🔄 Cargando modelos de IA... Esto puede tomar unos segundos.', 'info');
+                
+                // Actualizar progreso
+                this.updateProgress(10);
+                
+                // USAR CDN OFICIAL
+                const modelBaseUrl = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.1/model/';
+                
+                console.log('📥 Cargando modelo: Tiny Face Detector');
+                await faceapi.nets.tinyFaceDetector.loadFromUri(modelBaseUrl);
+                this.updateProgress(40);
+                
+                console.log('📥 Cargando modelo: Face Landmarks');
+                await faceapi.nets.faceLandmark68Net.loadFromUri(modelBaseUrl);
+                this.updateProgress(70);
+                
+                console.log('📥 Cargando modelo: Face Recognition');
+                await faceapi.nets.faceRecognitionNet.loadFromUri(modelBaseUrl);
+                this.updateProgress(100);
+                
+                this.modelsLoaded = true;
+                this.showMessage('✅ Modelos cargados correctamente', 'success');
+                this.modelStatus.style.display = 'none';
+                
+                console.log('🎉 Todos los modelos cargados exitosamente');
+                
+            } catch (error) {
+                console.error('❌ Error cargando modelos:', error);
+                this.showMessage('❌ Error cargando modelos de IA. Recarga la página.', 'error');
+                
+                // Intentar carga alternativa
+                try {
+                    this.showMessage('🔄 Intentando carga alternativa...', 'info');
+                    await faceapi.nets.tinyFaceDetector.load();
+                    this.modelsLoaded = true;
+                    this.showMessage('✅ Modelos cargados (modo básico)', 'success');
+                    this.modelStatus.style.display = 'none';
+                } catch (fallbackError) {
+                    this.showMessage('❌ No se pudieron cargar los modelos. Intenta más tarde.', 'error');
+                }
+            }
+        }
+        
+        updateProgress(percent) {
+            this.modelProgressBar.style.width = percent + '%';
+        }
+        
+        async startCamera() {
+            if (!this.modelsLoaded) {
+                this.showMessage('❌ Los modelos aún se están cargando', 'error');
+                return;
+            }
+            
+            try {
+                this.stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        width: 400, 
+                        height: 300,
+                        facingMode: 'user'
+                    } 
+                });
+                this.video.srcObject = this.stream;
+                this.video.style.display = 'block';
+                this.cameraPlaceholder.style.display = 'none';
+                this.captureBtn.disabled = false;
+                this.startBtn.disabled = true;
+                this.retakeBtn.style.display = 'none';
+                this.retryBtn.style.display = 'none';
+                
+                this.showMessage('✅ Cámara activada - Lista para capturar', 'success');
+            } catch (error) {
+                this.showMessage('❌ Error al acceder a la cámara: ' + error.message, 'error');
+            }
+        }
+        
+        async captureFace() {
+            if (!this.modelsLoaded) return;
+            
+            this.showMessage('🔍 Analizando rostro... (Por favor espera)', 'info');
+            
+            try {
+                // Detección rápida
+                const detections = await faceapi
+                    .detectAllFaces(this.video, new faceapi.TinyFaceDetectorOptions({
+                        inputSize: 128,
+                        scoreThreshold: 0.3
+                    }))
+                    .withFaceLandmarks()
+                    .withFaceDescriptors();
+                
+                if (detections.length === 0) {
+                    this.showMessage('❌ No se detectó ningún rostro. Acércate más a la cámara.', 'error');
+                    return;
+                }
+                
+                if (detections.length > 1) {
+                    this.showMessage('❌ Se detectó más de un rostro. Por favor, toma una foto con un solo rostro.', 'error');
+                    return;
+                }
+                
+                const detection = detections[0];
+                
+                // Mostrar información del rostro detectado
+                this.showFaceDetails(detection);
+                
+                // Extraer descriptor facial
+                this.faceDescriptor = Array.from(detection.descriptor);
+                
+                // Dibujar en canvas y mostrar preview
+                const context = this.canvas.getContext('2d');
+                context.drawImage(this.video, 0, 0, 400, 300);
+                
+                this.capturedImage = this.canvas.toDataURL('image/jpeg');
+                this.previewImage.src = this.capturedImage;
+                this.preview.style.display = 'block';
+                this.retakeBtn.style.display = 'inline-block';
+                this.captureBtn.disabled = true;
+                
+                // Detener la cámara
+                this.stopCamera();
+                
+                this.showMessage('✅ Rostro detectado correctamente. Puedes registrar ahora.', 'success');
+                
+            } catch (error) {
+                this.showMessage('❌ Error en detección: ' + error.message, 'error');
+            }
+        }
+
+        showFaceDetails(detection) {
+            const box = detection.detection.box;
+            const landmarks = detection.landmarks;
+            
+            this.faceDetails.innerHTML = `
+                <p><strong>Confianza de detección:</strong> ${(detection.detection.score * 100).toFixed(1)}%</p>
+                <p><strong>Posición:</strong> X:${Math.round(box.x)}, Y:${Math.round(box.y)}</p>
+                <p><strong>Tamaño:</strong> ${Math.round(box.width)}×${Math.round(box.height)}px</p>
+                <p><strong>Puntos faciales detectados:</strong> ${landmarks.positions.length}</p>
+            `;
+            this.detectionInfo.style.display = 'block';
+        }
+        
+        retakePhoto() {
+            this.preview.style.display = 'none';
+            this.retakeBtn.style.display = 'none';
+            this.retryBtn.style.display = 'none';
+            this.detectionInfo.style.display = 'none';
+            this.captureBtn.disabled = false;
+            this.faceDescriptor = null;
+            this.startCamera();
+        }
+
+        retryRegistration() {
+            this.preview.style.display = 'none';
+            this.retryBtn.style.display = 'none';
+            this.registerBtn.disabled = false;
+            this.registerBtn.textContent = '✅ Registrar Rostro';
+            this.faceDescriptor = null;
+            this.startCamera();
+        }
+        
+        stopCamera() {
+            if (this.stream) {
+                this.stream.getTracks().forEach(track => track.stop());
+            }
+        }
+        
+        async registerFace() {
+            if (!this.faceDescriptor) {
+                this.showMessage('❌ No hay datos faciales para registrar', 'error');
+                return;
+            }
+            
+            this.showMessage('🔄 Registrando rostro...', 'info');
+            this.registerBtn.disabled = true;
+            this.registerBtn.textContent = '🔄 Registrando...';
+            
+            try {
+                console.log('📤 Enviando datos faciales al servidor...', {
+                    descriptorLength: this.faceDescriptor.length,
+                    hasImageData: !!this.capturedImage
+                });
+                
+                // Agregar timeout
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 30000);
+                
+                const response = await fetch('/api/face-id/register-local', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        face_descriptor: this.faceDescriptor,
+                        image_data: this.capturedImage,
+                        recaptcha_token: 'simulated_token' // Para desarrollo
+                    }),
+                    signal: controller.signal
+                });
+                
+                clearTimeout(timeoutId);
+                
+                console.log('📥 Respuesta del servidor:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    ok: response.ok
+                });
+                
+                let result;
+                try {
+                    result = await response.json();
+                    console.log('📊 Resultado del registro:', result);
+                } catch (jsonError) {
+                    console.error('❌ Error parseando JSON:', jsonError);
+                    const text = await response.text();
+                    console.error('📄 Respuesta como texto:', text);
+                    throw new Error(`Respuesta inválida del servidor: ${text.substring(0, 100)}`);
+                }
+                
+                if (!response.ok) {
+                    throw new Error(`Error HTTP ${response.status}: ${result.error || 'Error desconocido'}`);
+                }
+                
+                if (result.success) {
+                    this.showMessage('✅ ¡Rostro registrado correctamente!', 'success');
+                    this.updateStatus(true);
+                    
+                    // Mostrar información adicional si está disponible
+                    if (result.face_info) {
+                        this.showRegistrationSuccess(result.face_info);
+                    }
+                    
+                    // Redirigir después de 2 segundos
+                    setTimeout(() => {
+                        window.location.href = '/dashboard';
+                    }, 2000);
+                    
+                } else {
+                    this.showMessage('❌ Error: ' + result.error, 'error');
+                    this.registerBtn.disabled = false;
+                    this.registerBtn.textContent = '✅ Registrar Rostro';
+                }
+                
+            } catch (error) {
+                console.error('❌ Error de conexión:', error);
+                
+                let userMessage = 'Error de conexión: ' + error.message;
+                if (error.name === 'AbortError') {
+                    userMessage = '❌ Tiempo de espera agotado. El servidor no respondió.';
+                } else if (error.message.includes('Failed to fetch')) {
+                    userMessage = '❌ Error de conexión con el servidor. Verifica tu conexión a internet.';
+                }
+                
+                this.showMessage(userMessage, 'error');
+                this.registerBtn.disabled = false;
+                this.registerBtn.textContent = '✅ Registrar Rostro';
+                this.retryBtn.style.display = 'inline-block';
+            }
+        }
+        
+        async disableFaceID() {
+            if (!confirm('¿Estás seguro de que quieres desactivar el Face ID?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/face-id/disable', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    this.showMessage('⚠️ Face ID desactivado', 'warning');
+                    this.updateStatus(false);
+                } else {
+                    this.showMessage('❌ Error al desactivar', 'error');
+                }
+                
+            } catch (error) {
+                this.showMessage('❌ Error de conexión', 'error');
+            }
+        }
+        
+        updateStatus(enabled) {
+            if (enabled) {
+                this.statusText.innerHTML = '✅ Face ID activado';
+                this.statusCard.style.background = '#d4edda';
+            } else {
+                this.statusText.innerHTML = '⚠️ Face ID no configurado';
+                this.statusCard.style.background = '#e7f3ff';
+            }
+        }
+        
+        showRegistrationSuccess(faceInfo) {
+            const successHtml = `
+                <div class="success-details">
+                    <h5 style="color: #155724; margin-bottom: 0.5rem;">✅ Registro exitoso</h5>
+                    <p style="color: #155724; margin: 0;">Tu rostro ha sido registrado correctamente en el sistema.</p>
+                </div>
+            `;
+            this.statusCard.innerHTML += successHtml;
+        }
+        
+        showMessage(message, type) {
+            // Crear o actualizar mensaje
+            let messageDiv = document.getElementById('statusMessage');
+            if (!messageDiv) {
+                messageDiv = document.createElement('div');
+                messageDiv.id = 'statusMessage';
+                document.querySelector('.camera-section').insertBefore(messageDiv, document.querySelector('.camera-controls'));
+            }
+            
+            const bgColor = type === 'success' ? '#d4edda' : 
+                           type === 'error' ? '#f8d7da' : '#fff3cd';
+            const color = type === 'success' ? '#155724' : 
+                         type === 'error' ? '#721c24' : '#856404';
+            const borderColor = type === 'success' ? '#c3e6cb' : 
+                              type === 'error' ? '#f5c6cb' : '#ffeaa7';
+            
+            messageDiv.style.cssText = `
+                background: ${bgColor}; 
+                color: ${color}; 
+                padding: 1rem; 
+                border-radius: 6px; 
+                border: 1px solid ${borderColor};
+                margin: 1rem 0;
+            `;
+            messageDiv.textContent = message;
+            
+            // Auto-eliminar mensajes de éxito después de 5 segundos
+            if (type === 'success') {
+                setTimeout(() => {
+                    if (messageDiv && messageDiv.textContent === message) {
+                        messageDiv.remove();
+                    }
+                }, 5000);
+            }
+        }
+    }
+    
+    document.addEventListener('DOMContentLoaded', () => {
+        new FaceIDSetup();
+    });
+</script>
+
+<style>
+    .face-id-setup {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .status-card {
+        background: #e7f3ff;
+        padding: 1.5rem;
+        border-radius: 10px;
+        margin-bottom: 2rem;
+        border-left: 4px solid #007bff;
+    }
+
+    .loading-model {
+        padding: 1rem;
+        background: #e7f3ff;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+    }
+
+    #modelProgress {
+        height: 4px;
+        background: #dee2e6;
+        border-radius: 2px;
+        margin-top: 0.5rem;
+    }
+
+    #modelProgressBar {
+        height: 100%;
+        background: #007bff;
+        border-radius: 2px;
+        width: 0%;
+        transition: width 0.3s;
+    }
+
+    .camera-container {
+        text-align: center;
+        margin: 1rem 0;
+        border: 2px solid #007bff;
+        border-radius: 10px;
+        padding: 1rem;
+        background: #f8f9fa;
+        position: relative;
+    }
+
+    #video, #canvas {
+        display: none;
+        border-radius: 8px;
+        margin: 0 auto;
+    }
+
+    .camera-placeholder {
+        width: 400px;
+        height: 300px;
+        background: #f8f9fa;
+        border: 2px dashed #dee2e6;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto;
+    }
+
+    .placeholder-content {
+        text-align: center;
+    }
+
+    .placeholder-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+    }
+
+    .camera-controls {
+        margin: 1.5rem 0;
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .preview-container {
+        display: none;
+        text-align: center;
+        margin: 1rem 0;
+        padding: 1.5rem;
+        border: 2px dashed #28a745;
+        border-radius: 10px;
+        background: #f8fff8;
+    }
+
+    #previewImage {
+        max-width: 200px;
+        border-radius: 8px;
+        margin: 1rem 0;
+    }
+
+    .preview-actions {
+        margin-top: 1rem;
+    }
+
+    .detection-info {
+        display: none;
+        margin-top: 1rem;
+        padding: 1rem;
+        background: #f8f9fa;
+        border-radius: 8px;
+    }
+
+    .face-details {
+        background: white;
+        padding: 1rem;
+        border-radius: 6px;
+        margin-top: 0.5rem;
+    }
+
+    .actions-section {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        margin-top: 2rem;
+    }
+
+    .success-details {
+        margin-top: 1rem;
+        padding: 1rem;
+        background: #d4edda;
+        border-radius: 5px;
+    }
+
+    @media (max-width: 768px) {
+        .camera-container {
+            padding: 0.5rem;
+        }
+
+        .camera-placeholder {
+            width: 100%;
+            height: 250px;
+        }
+
+        .camera-controls {
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .camera-controls .btn {
+            width: 100%;
+            max-width: 200px;
+        }
+
+        .actions-section {
+            flex-direction: column;
+        }
+
+        .actions-section .btn {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}

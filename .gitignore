@@ -1,0 +1,10 @@
+.env
+__pycache__/
+*.pyc
+*.pem
+private_key.pem
+public_key.pem
+*.pyc
+*.pyo
+instance/
+.DS_Store

@@ -1,0 +1,815 @@
+{% extends "base.html" %}
+
+{% block title %}Iniciar Sesión — Rutas Óptimas{% endblock %}
+
+{% block content %}
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600&display=swap');
+
+  /* ── Reset de estilos del base que interfieren ── */
+  .main-content {
+    padding: 0 !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+  }
+
+  /* ── Escena completa ── */
+  .cyber-scene {
+    position: relative;
+    min-height: calc(100vh - 120px);
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    font-family: 'Rajdhani', sans-serif;
+  }
+
+  /* ── Panel de login ── */
+  .cyber-panel {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    max-width: 440px;
+    margin-left: 8vw;
+    padding: 2.5rem 2.5rem 2rem;
+    background: rgba(2, 10, 30, 0.82);
+    border: 1px solid rgba(0,212,255,0.25);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px));
+  }
+
+  /* Borde animado */
+  .cyber-panel::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px));
+    padding: 1px;
+    background: linear-gradient(135deg, rgba(0,212,255,0.6), rgba(139,92,246,0.4), rgba(0,212,255,0.1));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    animation: borderGlow 4s ease-in-out infinite alternate;
+    pointer-events: none;
+  }
+
+  @keyframes borderGlow {
+    from { opacity: 0.6; }
+    to   { opacity: 1; filter: drop-shadow(0 0 6px rgba(0,212,255,0.5)); }
+  }
+
+  /* Esquina decorativa */
+  .cyber-panel::after {
+    content: '';
+    position: absolute;
+    top: -1px;
+    right: -1px;
+    width: 20px;
+    height: 20px;
+    background: rgba(0,212,255,0.4);
+    clip-path: polygon(100% 0, 0 0, 100% 100%);
+  }
+
+  /* ── Logo / Header ── */
+  .cyber-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 0.4rem;
+  }
+
+  .logo-icon {
+    width: 36px;
+    height: 36px;
+    border: 1.5px solid rgba(0,212,255,0.6);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    background: rgba(0,212,255,0.1);
+    box-shadow: 0 0 12px rgba(0,212,255,0.3);
+    animation: iconPulse 3s ease-in-out infinite;
+  }
+
+  @keyframes iconPulse {
+    0%, 100% { box-shadow: 0 0 12px rgba(0,212,255,0.3); }
+    50%       { box-shadow: 0 0 20px rgba(0,212,255,0.6), 0 0 40px rgba(0,212,255,0.2); }
+  }
+
+  .logo-text {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: rgba(0,212,255,0.8);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+
+  .cyber-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.6rem;
+    font-weight: 900;
+    color: #fff;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.2rem;
+    line-height: 1.1;
+  }
+
+  .cyber-subtitle {
+    font-size: 0.85rem;
+    color: rgba(0,212,255,0.5);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 2rem;
+    font-weight: 300;
+  }
+
+  /* ── Flash messages ── */
+  .flash-messages {
+    margin-bottom: 1rem;
+  }
+
+  .flash-message {
+    padding: 0.6rem 1rem;
+    margin-bottom: 0.4rem;
+    font-size: 0.82rem;
+    border-left: 3px solid;
+    background: rgba(0,0,0,0.3);
+    font-family: 'Rajdhani', sans-serif;
+    letter-spacing: 0.05em;
+  }
+
+  .flash-message.success { border-color: #00d4ff; color: #00d4ff; }
+  .flash-message.error   { border-color: #ff4d6d; color: #ff4d6d; }
+  .flash-message.warning { border-color: #ffd60a; color: #ffd60a; }
+  .flash-message.info    { border-color: #7c3aed; color: #a78bfa; }
+
+  /* ── Form fields ── */
+  .cyber-field {
+    position: relative;
+    margin-bottom: 1.2rem;
+  }
+
+  .cyber-label {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: rgba(0,212,255,0.6);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 0.4rem;
+  }
+
+  .cyber-input {
+    width: 100%;
+    padding: 0.75rem 1rem 0.75rem 2.5rem;
+    background: rgba(0,212,255,0.04);
+    border: 1px solid rgba(0,212,255,0.2);
+    color: #e0f7ff;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1rem;
+    font-weight: 400;
+    letter-spacing: 0.05em;
+    outline: none;
+    transition: all 0.3s;
+    clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+    box-sizing: border-box;
+  }
+
+  .cyber-input:focus {
+    border-color: rgba(0,212,255,0.7);
+    background: rgba(0,212,255,0.08);
+    box-shadow: 0 0 20px rgba(0,212,255,0.12), inset 0 0 10px rgba(0,212,255,0.05);
+  }
+
+  .cyber-input::placeholder {
+    color: rgba(0,212,255,0.2);
+    font-size: 0.9rem;
+  }
+
+  .field-icon {
+    position: absolute;
+    left: 0.8rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.9rem;
+    opacity: 0.5;
+    pointer-events: none;
+    margin-top: 11px;
+  }
+
+  /* Línea inferior animada */
+  .cyber-field::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 0;
+    height: 1px;
+    background: linear-gradient(90deg, #00d4ff, #8b5cf6);
+    transition: width 0.4s ease;
+  }
+
+  .cyber-field:focus-within::after {
+    width: 100%;
+  }
+
+  /* ── Botón principal ── */
+  .cyber-btn {
+    width: 100%;
+    padding: 0.85rem 1.5rem;
+    margin-top: 0.5rem;
+    background: linear-gradient(135deg, rgba(0,212,255,0.15), rgba(139,92,246,0.15));
+    border: 1px solid rgba(0,212,255,0.5);
+    color: #00d4ff;
+    font-family: 'Orbitron', monospace;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s;
+    clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+  }
+
+  .cyber-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(0,212,255,0.3), rgba(139,92,246,0.3));
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .cyber-btn:hover {
+    border-color: rgba(0,212,255,0.9);
+    color: #fff;
+    box-shadow: 0 0 25px rgba(0,212,255,0.3), 0 0 50px rgba(0,212,255,0.1);
+    transform: translateY(-1px);
+  }
+
+  .cyber-btn:hover::before { opacity: 1; }
+  .cyber-btn:active { transform: translateY(0); }
+  .btn-text { position: relative; z-index: 1; }
+
+  /* ── Separador ── */
+  .cyber-divider {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin: 1.5rem 0;
+  }
+
+  .divider-line {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(0,212,255,0.3), transparent);
+  }
+
+  .divider-text {
+    font-size: 0.65rem;
+    color: rgba(0,212,255,0.4);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  /* ── Botón Face ID ── */
+  .face-btn {
+    width: 100%;
+    padding: 0.75rem 1.5rem;
+    background: transparent;
+    border: 1px solid rgba(139,92,246,0.4);
+    color: rgba(167,139,250,0.9);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    transition: all 0.3s;
+    clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+    box-sizing: border-box;
+  }
+
+  .face-btn:hover {
+    background: rgba(139,92,246,0.1);
+    border-color: rgba(139,92,246,0.8);
+    color: #a78bfa;
+    box-shadow: 0 0 20px rgba(139,92,246,0.2);
+  }
+
+  /* ── Links de pie ── */
+  .cyber-links {
+    margin-top: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    align-items: center;
+  }
+
+  .cyber-link-text {
+    font-size: 0.8rem;
+    color: rgba(0,212,255,0.4);
+    letter-spacing: 0.05em;
+  }
+
+  .cyber-link {
+    color: rgba(0,212,255,0.8);
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.2s;
+  }
+
+  .cyber-link:hover {
+    color: #00d4ff;
+    text-shadow: 0 0 10px rgba(0,212,255,0.5);
+  }
+
+  /* ── Scan line effect ── */
+  .scanline {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(0,212,255,0.4), transparent);
+    animation: scan 6s linear infinite;
+    pointer-events: none;
+    z-index: 20;
+  }
+
+  @keyframes scan {
+    0%   { top: 0; opacity: 0; }
+    5%   { opacity: 1; }
+    95%  { opacity: 1; }
+    100% { top: 100%; opacity: 0; }
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 768px) {
+    .cyber-panel {
+      margin-left: auto;
+      margin-right: auto;
+      max-width: 92%;
+    }
+  }
+</style>
+
+<!-- Globo 3D como fondo fijo -->
+<div id="globe-bg" style="
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  z-index: 0;
+  background: #020510;
+  overflow: hidden;
+  pointer-events: none;
+">
+  <canvas id="globeCanvas" style="width:100%;height:100%;display:block;"></canvas>
+</div>
+
+<div class="cyber-scene">
+  <!-- Panel de login -->
+  <div class="cyber-panel">
+    <div class="scanline"></div>
+
+    <div class="cyber-logo">
+      <div class="logo-icon">🌐</div>
+      <span class="logo-text">Sistema de Rutas</span>
+    </div>
+
+    <h1 class="cyber-title">ACCESO<br>AL SISTEMA</h1>
+    <p class="cyber-subtitle">// Autenticación requerida</p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-messages">
+          {% for category, message in messages %}
+            <div class="flash-message {{ category }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST" id="login-form">
+      <div class="cyber-field">
+        <label class="cyber-label" for="username">Identificador de usuario</label>
+        <span class="field-icon">👤</span>
+        <input
+          type="text"
+          id="username"
+          name="username"
+          class="cyber-input"
+          placeholder="usuario@rutas"
+          required
+          autocomplete="username"
+          value="{{ request.form.username if request.form.username }}"
+        >
+      </div>
+
+      <div class="cyber-field">
+        <label class="cyber-label" for="password">Clave de acceso</label>
+        <span class="field-icon">🔐</span>
+        <input
+          type="password"
+          id="password"
+          name="password"
+          class="cyber-input"
+          placeholder="••••••••"
+          required
+          autocomplete="current-password"
+        >
+      </div>
+
+      {% if not simulate_recaptcha %}
+      <div style="margin-bottom:1rem;">
+        <div class="g-recaptcha" data-sitekey="{{ site_key }}"></div>
+      </div>
+      {% endif %}
+
+      <button type="submit" class="cyber-btn">
+        <span class="btn-text">▶ INICIAR SESIÓN</span>
+      </button>
+    </form>
+
+    <div class="cyber-divider">
+      <div class="divider-line"></div>
+      <span class="divider-text">o continúa con</span>
+      <div class="divider-line"></div>
+    </div>
+
+    <a href="{{ url_for('face_id_login') }}" class="face-btn">
+      📷 <span>Face ID Biométrico</span>
+    </a>
+
+    <div class="cyber-links">
+      <p class="cyber-link-text">
+        ¿Sin cuenta? <a href="{{ url_for('register') }}" class="cyber-link">Registrarse</a>
+      </p>
+      <p class="cyber-link-text">
+        <a href="{{ url_for('forgot_password') }}" class="cyber-link">¿Olvidaste tu clave?</a>
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if not simulate_recaptcha %}
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+{% endif %}
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ══════════════════════════════════════════════
+   GLOBO 3D — Rutas Óptimas Login Background
+   Three.js r128
+══════════════════════════════════════════════ */
+(function () {
+  const canvas    = document.getElementById('globeCanvas');
+  const container = document.getElementById('globe-bg');
+
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(container.clientWidth, container.clientHeight);
+  renderer.setClearColor(0x020510, 1);
+
+  const scene = new THREE.Scene();
+
+  // Cámara desplazada a la derecha → globo se ve en la mitad derecha de pantalla
+  const camera = new THREE.PerspectiveCamera(42, container.clientWidth / container.clientHeight, 0.1, 1000);
+  camera.position.set(1.4, 0.1, 3.0);
+  camera.lookAt(0.5, 0, 0);
+
+  // ── Grupo principal para rotación conjunta ─────────────────────
+  const world = new THREE.Group();
+  world.rotation.x = 0.18; // leve inclinación como la referencia
+  scene.add(world);
+
+  // ── Estrellas (no rotan con el globo) ─────────────────────────
+  const starGeo = new THREE.BufferGeometry();
+  const sv = [];
+  for (let i = 0; i < 9000; i++) {
+    const th = Math.random() * Math.PI * 2;
+    const ph = Math.acos(2 * Math.random() - 1);
+    const r  = 9 + Math.random() * 4;
+    sv.push(
+      r * Math.sin(ph) * Math.cos(th),
+      r * Math.sin(ph) * Math.sin(th),
+      r * Math.cos(ph)
+    );
+  }
+  starGeo.setAttribute('position', new THREE.Float32BufferAttribute(sv, 3));
+  scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({
+    color: 0xffffff, size: 0.013, transparent: true, opacity: 0.65
+  })));
+
+  // ── Globo base — azul noche profundo ─────────────────────────
+  world.add(new THREE.Mesh(
+    new THREE.SphereGeometry(1, 80, 80),
+    new THREE.MeshPhongMaterial({
+      color: 0x001428,
+      emissive: 0x00080f,
+      specular: 0x004488,
+      shininess: 55,
+      transparent: true,
+      opacity: 0.97,
+    })
+  ));
+
+  // ── Cuadrícula lat/lng tenue ──────────────────────────────────
+  const gridMat = new THREE.LineBasicMaterial({ color: 0x002a4a, transparent: true, opacity: 0.22 });
+  for (let lat = -80; lat <= 80; lat += 15) {
+    const pts = [];
+    const ph = (90 - lat) * Math.PI / 180;
+    for (let lng = 0; lng <= 361; lng += 2) {
+      pts.push(new THREE.Vector3(
+        Math.sin(ph) * Math.cos(lng * Math.PI / 180),
+        Math.cos(ph),
+        Math.sin(ph) * Math.sin(lng * Math.PI / 180)
+      ));
+    }
+    world.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), gridMat));
+  }
+  for (let lng = 0; lng < 360; lng += 15) {
+    const pts = [];
+    const th = lng * Math.PI / 180;
+    for (let lat = -90; lat <= 90; lat += 2) {
+      const ph = (90 - lat) * Math.PI / 180;
+      pts.push(new THREE.Vector3(Math.sin(ph) * Math.cos(th), Math.cos(ph), Math.sin(ph) * Math.sin(th)));
+    }
+    world.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), gridMat));
+  }
+
+  // ── Utilidad lat/lng → Vector3 ────────────────────────────────
+  function ll2v(lat, lng, r) {
+    r = r || 1.012;
+    const ph = (90 - lat) * Math.PI / 180;
+    const th = (lng + 180) * Math.PI / 180;
+    return new THREE.Vector3(
+      -r * Math.sin(ph) * Math.cos(th),
+       r * Math.cos(ph),
+       r * Math.sin(ph) * Math.sin(th)
+    );
+  }
+
+  // ── Ciudades — efecto luces nocturnas ─────────────────────────
+  var CITIES = [
+    // América
+    [19.43,-99.13, 0x00f5c4, 'CDMX'],
+    [40.71,-74.01, 0x00d4ff, 'NY'],
+    [34.05,-118.24,0x00d4ff, 'LA'],
+    [37.77,-122.41,0x00aaff, 'SF'],
+    [45.42,-75.69, 0x00d4ff, 'Ottawa'],
+    [43.65,-79.38, 0x00ccff, 'Toronto'],
+    [-23.55,-46.63,0x00f5c4, 'São Paulo'],
+    [-34.61,-58.38,0x00f5c4, 'Buenos Aires'],
+    [4.71,-74.07,  0x00f5c4, 'Bogotá'],
+    [-12.04,-77.03,0x00f5c4, 'Lima'],
+    // Europa
+    [51.51,-0.13,  0x4499ff, 'Londres'],
+    [48.85,2.35,   0x4499ff, 'París'],
+    [52.52,13.40,  0x4499ff, 'Berlín'],
+    [41.90,12.50,  0x4499ff, 'Roma'],
+    [40.42,-3.70,  0x4499ff, 'Madrid'],
+    [59.93,30.32,  0x8866ff, 'San Petersburgo'],
+    [55.75,37.62,  0x8866ff, 'Moscú'],
+    [50.45,30.52,  0x8866ff, 'Kiev'],
+    [52.23,21.01,  0x4499ff, 'Varsovia'],
+    [47.50,19.04,  0x4499ff, 'Budapest'],
+    // Asia
+    [39.91,116.39, 0xffcc00, 'Pekín'],
+    [31.23,121.47, 0xffcc00, 'Shanghái'],
+    [22.28,114.16, 0xffcc00, 'Hong Kong'],
+    [35.69,139.69, 0xffcc00, 'Tokio'],
+    [34.69,135.50, 0xffcc00, 'Osaka'],
+    [37.57,126.98, 0xffcc00, 'Seúl'],
+    [28.61,77.21,  0xff9933, 'Delhi'],
+    [19.08,72.88,  0xff9933, 'Mumbai'],
+    [25.20,55.27,  0xff6633, 'Dubai'],
+    [24.71,46.72,  0xff6633, 'Riad'],
+    [41.01,28.95,  0xff9933, 'Estambul'],
+    [35.69,51.42,  0xff9933, 'Teherán'],
+    [1.35,103.82,  0x00ffcc, 'Singapur'],
+    [13.75,100.52, 0x00ffcc, 'Bangkok'],
+    [10.82,106.63, 0x00ffcc, 'Ho Chi Minh'],
+    [14.09,108.27, 0x00ffcc, 'Hanói'],
+    [3.14,101.69,  0x00ffcc, 'Kuala Lumpur'],
+    // África & Oceanía
+    [-26.20,28.04, 0xff3c78, 'Johannesburgo'],
+    [-33.93,18.42, 0xff3c78, 'Ciudad del Cabo'],
+    [30.06,31.25,  0xff9933, 'El Cairo'],
+    [6.37,2.39,    0xff9933, 'Lagos'],
+    [-33.87,151.21,0xff3c78, 'Sydney'],
+    [-37.81,144.96,0xff3c78, 'Melbourne'],
+  ];
+
+  CITIES.forEach(function(c) {
+    var lat = c[0], lng = c[1], col = c[2];
+    var pos = ll2v(lat, lng, 1.005);
+
+    // Punto central brillante
+    var dot = new THREE.Mesh(
+      new THREE.SphereGeometry(0.007, 8, 8),
+      new THREE.MeshBasicMaterial({ color: col })
+    );
+    dot.position.copy(pos);
+    world.add(dot);
+
+    // Halo suave
+    var halo = new THREE.Mesh(
+      new THREE.SphereGeometry(0.018, 8, 8),
+      new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.18 })
+    );
+    halo.position.copy(pos);
+    world.add(halo);
+
+    // Micro-puntos alrededor (efecto mancha urbana)
+    for (var i = 0; i < 8; i++) {
+      var angle = (i / 8) * Math.PI * 2;
+      var spread = 0.2 + Math.random() * 0.3;
+      var mpos = ll2v(lat + Math.sin(angle) * spread, lng + Math.cos(angle) * spread, 1.004);
+      var micro = new THREE.Mesh(
+        new THREE.SphereGeometry(0.002 + Math.random() * 0.003, 6, 6),
+        new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.3 + Math.random() * 0.55 })
+      );
+      micro.position.copy(mpos);
+      world.add(micro);
+    }
+  });
+
+  // ── Rutas globales con arcos ───────────────────────────────────
+  var ROUTES = [
+    // América - cyan
+    [19.43,-99.13,  40.71,-74.01,  0x00f5c4],
+    [19.43,-99.13,   4.71,-74.07,  0x00f5c4],
+    [19.43,-99.13, -23.55,-46.63,  0x00f5c4],
+    [19.43,-99.13,  34.05,-118.24, 0x00f5c4],
+    [19.43,-99.13,   1.35, 103.82, 0x00f5c4],
+    [45.42,-75.69,  19.43,-99.13,  0x00f5c4],
+    [40.71,-74.01, -34.61,-58.38,  0x00d4ff],
+    [34.05,-118.24, 40.71,-74.01,  0x00d4ff],
+    [-23.55,-46.63,-34.61,-58.38,  0x00e5b4],
+    // Trans-Atlántico
+    [40.71,-74.01,  51.51,  -0.13, 0x0099ff],
+    [34.05,-118.24, 51.51,  -0.13, 0x0077dd],
+    [19.43,-99.13,  40.42,  -3.70, 0x00ccff],
+    // Europa - azul
+    [51.51,-0.13,   48.85,   2.35, 0x4499ff],
+    [48.85, 2.35,   52.52,  13.40, 0x4499ff],
+    [52.52,13.40,   41.90,  12.50, 0x4499ff],
+    [41.90,12.50,   40.42,  -3.70, 0x4499ff],
+    [52.52,13.40,   52.23,  21.01, 0x4499ff],
+    [52.23,21.01,   47.50,  19.04, 0x4499ff],
+    [51.51,-0.13,   59.93,  30.32, 0x5588ff],
+    // Europa - Asia
+    [52.52,13.40,   55.75,  37.62, 0x8866ff],
+    [55.75,37.62,   41.01,  28.95, 0x8866ff],
+    [55.75,37.62,   39.91, 116.39, 0xf5c400],
+    [41.01,28.95,   25.20,  55.27, 0xff8833],
+    // Asia - amarillo/naranja
+    [39.91,116.39,  35.69, 139.69, 0xf5c400],
+    [39.91,116.39,  31.23, 121.47, 0xf5c400],
+    [31.23,121.47,  22.28, 114.16, 0xf5c400],
+    [39.91,116.39,  37.57, 126.98, 0xf5c400],
+    [39.91,116.39,  28.61,  77.21, 0xf5c400],
+    [28.61,77.21,   25.20,  55.27, 0xff9933],
+    [25.20,55.27,   30.06,  31.25, 0xff9933],
+    [25.20,55.27,   51.51,  -0.13, 0xff6b35],
+    // Trans-Pacífico
+    [34.05,-118.24, 35.69, 139.69, 0xff6b35],
+    [34.05,-118.24,  1.35, 103.82, 0xff6655],
+    [35.69,139.69, -33.87, 151.21, 0xff6b35],
+    // Sudeste Asiático - verde
+    [1.35,103.82,   39.91, 116.39, 0x00ffcc],
+    [1.35,103.82,   22.28, 114.16, 0x00ffcc],
+    [1.35,103.82,   13.75, 100.52, 0x00ffcc],
+    [13.75,100.52,  28.61,  77.21, 0x00ffcc],
+    [10.82,106.63,   1.35, 103.82, 0x00ffcc],
+    // África - rosa
+    [-26.20,28.04,  25.20,  55.27, 0xff3c78],
+    [-26.20,28.04,  30.06,  31.25, 0xff3c78],
+    [30.06,31.25,   51.51,  -0.13, 0xff5577],
+    [6.37,2.39,     30.06,  31.25, 0xff4466],
+    // Oceanía
+    [-33.87,151.21,  1.35, 103.82, 0xff3c78],
+    [-33.87,151.21, 35.69, 139.69, 0xff6655],
+  ];
+
+  var pulses = [];
+
+  ROUTES.forEach(function(r) {
+    var la1=r[0], ln1=r[1], la2=r[2], ln2=r[3], col=r[4];
+    var s = ll2v(la1, ln1);
+    var e = ll2v(la2, ln2);
+    var mid = s.clone().add(e).normalize();
+    var dist = s.distanceTo(e);
+    var height = 1.25 + dist * 0.22;
+    var m = mid.multiplyScalar(height);
+    var curve = new THREE.QuadraticBezierCurve3(s, m, e);
+    var pts = curve.getPoints(120);
+
+    world.add(new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints(pts),
+      new THREE.LineBasicMaterial({ color: col, transparent: true, opacity: 0.4 })
+    ));
+
+    // Pulso viajero
+    var pdot = new THREE.Mesh(
+      new THREE.SphereGeometry(0.013, 8, 8),
+      new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.92 })
+    );
+    world.add(pdot);
+    pulses.push({
+      curve: curve,
+      dot: pdot,
+      t: Math.random(),
+      speed: 0.0012 + Math.random() * 0.0022
+    });
+  });
+
+  // ── Atmósfera (glow exterior) ─────────────────────────────────
+  world.add(new THREE.Mesh(
+    new THREE.SphereGeometry(1.10, 64, 64),
+    new THREE.MeshPhongMaterial({
+      color: 0x0055cc,
+      transparent: true,
+      opacity: 0.055,
+      side: THREE.FrontSide
+    })
+  ));
+
+  // Halo de borde — efecto limbo azul como en la foto
+  world.add(new THREE.Mesh(
+    new THREE.SphereGeometry(1.14, 64, 64),
+    new THREE.MeshPhongMaterial({
+      color: 0x0033aa,
+      transparent: true,
+      opacity: 0.035,
+      side: THREE.BackSide
+    })
+  ));
+
+  // ── Luces ─────────────────────────────────────────────────────
+  scene.add(new THREE.AmbientLight(0x0a1833, 2.8));
+
+  var keyLight = new THREE.DirectionalLight(0x2255cc, 1.6);
+  keyLight.position.set(-4, 2, 3);
+  scene.add(keyLight);
+
+  var rimLight = new THREE.DirectionalLight(0x003399, 0.7);
+  rimLight.position.set(4, -1, -2);
+  scene.add(rimLight);
+
+  // ── Loop de animación ─────────────────────────────────────────
+  var ry = 0;
+
+  (function loop() {
+    requestAnimationFrame(loop);
+
+    ry += 0.02;
+    world.rotation.y = ry;
+
+    pulses.forEach(function(p) {
+      p.t = (p.t + p.speed) % 1;
+      var pt = p.curve.getPoint(p.t);
+      p.dot.position.copy(pt);
+    });
+
+    renderer.render(scene, camera);
+  })();
+
+  // ── Resize ────────────────────────────────────────────────────
+  window.addEventListener('resize', function() {
+    var w = container.clientWidth, h = container.clientHeight;
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    renderer.setSize(w, h);
+  });
+})();
+</script>
+
+<script>
+  document.getElementById('login-form').addEventListener('submit', function(e) {
+    {% if not simulate_recaptcha %}
+    var recaptchaResponse = grecaptcha.getResponse();
+    if (!recaptchaResponse) {
+      e.preventDefault();
+      alert('Por favor, completa el reCAPTCHA "No soy robot"');
+      return;
+    }
+    {% endif %}
+  });
+</script>
+{% endblock %}

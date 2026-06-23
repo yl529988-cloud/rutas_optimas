@@ -1,0 +1,395 @@
+{% extends "base.html" %}
+
+{% block title %}Login con Face ID - Rutas Óptimas{% endblock %}
+
+{% block content %}
+<div class="dashboard-container" style="max-width: 500px; margin: 2rem auto;">
+    <div class="dashboard-header" style="text-align: center;">
+        <h1>📷 Iniciar Sesión con Face ID</h1>
+        <p>Usa tu rostro para un acceso rápido y seguro</p>
+    </div>
+
+    <div class="face-id-login" style="text-align: center; padding: 2rem; background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+        <!-- Estado de carga de modelos -->
+        <div id="modelStatus" style="margin-bottom: 1.5rem;">
+            <div style="padding: 1rem; background: #e7f3ff; border-radius: 8px;">
+                <p>🔄 Cargando modelos de reconocimiento facial...</p>
+                <div id="modelProgress" style="height: 4px; background: #dee2e6; border-radius: 2px; margin-top: 0.5rem;">
+                    <div id="modelProgressBar" style="height: 100%; background: #007bff; border-radius: 2px; width: 0%; transition: width 0.3s;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="camera-container">
+            <p style="margin-bottom: 1.5rem; color: #666;">Mira directamente a la cámara</p>
+            
+            <div class="camera-section">
+                <video id="video" width="400" height="300" autoplay style="display: none; border-radius: 8px;"></video>
+                <canvas id="canvas" width="400" height="300" style="display: none;"></canvas>
+                
+                <div id="cameraPlaceholder" style="width: 400px; height: 300px; background: #f8f9fa; border: 2px dashed #dee2e6; border-radius: 8px; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
+                    <div style="text-align: center;">
+                        <div style="font-size: 3rem;">📷</div>
+                        <p style="color: #666; margin-top: 1rem;">Cámara no activada</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="margin-top: 1.5rem;">
+                <button class="btn" id="startCamera"
+                        style="background: #007bff; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 5px; margin-right: 1rem;">
+                    🎥 Activar Cámara
+                </button>
+                <button class="btn" id="detectFace"
+                        style="background: #28a745; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 5px;"
+                        disabled>
+                    🔍 Detectar Rostro
+                </button>
+            </div>
+            
+            <div id="detectionResult" style="margin-top: 1.5rem; display: none;">
+                <h4>Resultado de detección:</h4>
+                <div id="faceInfo" style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin-top: 0.5rem;"></div>
+            </div>
+
+            <!-- Mensaje de estado mejorado -->
+            <div id="statusMessage" style="margin: 1rem 0;"></div>
+        </div>
+        
+        <div class="login-form" style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid #dee2e6;">
+            <p style="color: #666; margin-bottom: 1rem;">¿Problemas con Face ID?</p>
+            <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                <a href="{{ url_for('login') }}" class="btn" 
+                   style="background: #007bff; color: white; padding: 0.75rem 1.5rem; text-decoration: none; border-radius: 5px;">
+                    Usar Usuario y Contraseña
+                </a>
+                <a href="{{ url_for('forgot_password') }}" class="btn" 
+                   style="background: #6c757d; color: white; padding: 0.75rem 1.5rem; text-decoration: none; border-radius: 5px;">
+                    Recuperar Contraseña
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Cargar TensorFlow.js y Face-API.js -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.18.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.1/dist/face-api.min.js"></script>
+
+<script>
+    class FaceIDLogin {
+        constructor() {
+            this.video = document.getElementById('video');
+            this.canvas = document.getElementById('canvas');
+            this.cameraPlaceholder = document.getElementById('cameraPlaceholder');
+            this.startBtn = document.getElementById('startCamera');
+            this.detectBtn = document.getElementById('detectFace');
+            this.modelStatus = document.getElementById('modelStatus');
+            this.modelProgressBar = document.getElementById('modelProgressBar');
+            this.detectionResult = document.getElementById('detectionResult');
+            this.faceInfo = document.getElementById('faceInfo');
+            this.statusMessage = document.getElementById('statusMessage');
+            
+            this.stream = null;
+            this.modelsLoaded = false;
+            this.isDetecting = false;
+            this.username = null;
+            this.progressInterval = null;
+            
+            this.initEvents();
+            this.loadModels();
+        }
+        
+        initEvents() {
+            this.startBtn.addEventListener('click', () => this.startCamera());
+            this.detectBtn.addEventListener('click', () => this.detectFace());
+            
+            // Solicitar usuario al cargar la página
+            this.promptUsername();
+        }
+        
+        promptUsername() {
+            this.username = prompt('Por favor, ingresa tu nombre de usuario:');
+            if (!this.username) {
+                this.showMessage('❌ Se requiere nombre de usuario para Face ID', 'error');
+                this.startBtn.disabled = true;
+                this.detectBtn.disabled = true;
+            } else {
+                console.log('👤 Usuario ingresado:', this.username);
+            }
+        }
+        
+        async loadModels() {
+            try {
+                this.showMessage('🔄 Cargando modelos de IA... Esto puede tomar unos segundos.', 'info');
+                
+                // Actualizar progreso
+                this.updateProgress(10);
+                
+                // ✅ USAR CDN OFICIAL - MÁS CONFIABLE
+                const modelBaseUrl = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.1/model/';
+                
+                console.log('📥 Cargando modelo: Tiny Face Detector');
+                await faceapi.nets.tinyFaceDetector.loadFromUri(modelBaseUrl);
+                this.updateProgress(40);
+                
+                console.log('📥 Cargando modelo: Face Landmarks');
+                await faceapi.nets.faceLandmark68Net.loadFromUri(modelBaseUrl);
+                this.updateProgress(70);
+                
+                console.log('📥 Cargando modelo: Face Recognition');
+                await faceapi.nets.faceRecognitionNet.loadFromUri(modelBaseUrl);
+                this.updateProgress(100);
+                
+                this.modelsLoaded = true;
+                this.showMessage('✅ Modelos cargados correctamente', 'success');
+                this.modelStatus.style.display = 'none';
+                
+                console.log('🎉 Todos los modelos cargados exitosamente');
+                
+            } catch (error) {
+                console.error('❌ Error cargando modelos:', error);
+                this.showMessage('❌ Error cargando modelos de IA. Recarga la página.', 'error');
+                
+                // Intentar cargar sin modelos específicos (detección básica)
+                try {
+                    this.showMessage('🔄 Intentando carga alternativa...', 'info');
+                    await faceapi.nets.tinyFaceDetector.load();
+                    this.modelsLoaded = true;
+                    this.showMessage('✅ Modelos cargados (modo básico)', 'success');
+                    this.modelStatus.style.display = 'none';
+                } catch (fallbackError) {
+                    this.showMessage('❌ No se pudieron cargar los modelos. Usa login tradicional.', 'error');
+                }
+            }
+        }
+        
+        updateProgress(percent) {
+            this.modelProgressBar.style.width = percent + '%';
+        }
+        
+        async startCamera() {
+            if (!this.username) {
+                this.promptUsername();
+                return;
+            }
+            
+            if (!this.modelsLoaded) {
+                this.showMessage('❌ Los modelos aún se están cargando', 'error');
+                return;
+            }
+            
+            try {
+                this.stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        width: 400, 
+                        height: 300,
+                        facingMode: 'user'  // Usar cámara frontal
+                    } 
+                });
+                this.video.srcObject = this.stream;
+                this.video.style.display = 'block';
+                this.cameraPlaceholder.style.display = 'none';
+                this.detectBtn.disabled = false;
+                this.startBtn.disabled = true;
+                
+                this.showMessage('✅ Cámara activada - Ahora puedes detectar rostros', 'success');
+            } catch (error) {
+                this.showMessage('❌ Error al acceder a la cámara: ' + error.message, 'error');
+            }
+        }
+        
+        async detectFace() {
+            if (!this.modelsLoaded || this.isDetecting) return;
+            
+            this.isDetecting = true;
+            this.detectBtn.disabled = true;
+            this.showMessage('🔍 Analizando rostro... (Por favor espera)', 'info');
+            
+            try {
+                // ✅ DETECCIÓN ULTRA-RÁPIDA
+                const detections = await faceapi
+                    .detectAllFaces(this.video, new faceapi.TinyFaceDetectorOptions({
+                        inputSize: 128,      // ✅ Tamaño más pequeño = más rápido
+                        scoreThreshold: 0.3  // ✅ Umbral más bajo = detección más rápida
+                    }))
+                    .withFaceLandmarks()
+                    .withFaceDescriptors();
+                
+                console.log('🔍 Rostros detectados:', detections.length);
+                
+                if (detections.length === 0) {
+                    this.showMessage('❌ No se detectó ningún rostro. Acércate más a la cámara.', 'error');
+                    this.detectBtn.disabled = false;
+                    this.isDetecting = false;
+                    return;
+                }
+                
+                if (detections.length > 1) {
+                    this.showMessage('❌ Se detectó más de un rostro', 'error');
+                    this.detectBtn.disabled = false;
+                    this.isDetecting = false;
+                    return;
+                }
+                
+                const detection = detections[0];
+                console.log('✅ Rostro detectado con confianza:', (detection.detection.score * 100).toFixed(1) + '%');
+                
+                // ✅ Solo mostrar info si la confianza es buena
+                if (detection.detection.score > 0.5) {
+                    this.showFaceInfo(detection);
+                }
+                
+                // Extraer descriptor facial (vector de características)
+                const faceDescriptor = detection.descriptor;
+                console.log('📊 Descriptor facial extraído:', faceDescriptor.length, 'dimensiones');
+                
+                // Enviar descriptor al servidor para comparación
+                await this.verifyFace(faceDescriptor);
+                
+            } catch (error) {
+                console.error('❌ Error en detección:', error);
+                this.showMessage('❌ Error en detección: ' + error.message, 'error');
+                this.detectBtn.disabled = false;
+                this.isDetecting = false;
+            }
+        }
+        
+        showFaceInfo(detection) {
+            const box = detection.detection.box;
+            const landmarks = detection.landmarks;
+            
+            this.faceInfo.innerHTML = `
+                <p><strong>Confianza de detección:</strong> ${(detection.detection.score * 100).toFixed(1)}%</p>
+                <p><strong>Posición:</strong> X:${Math.round(box.x)}, Y:${Math.round(box.y)}</p>
+                <p><strong>Tamaño:</strong> ${Math.round(box.width)}×${Math.round(box.height)}px</p>
+                <p><strong>Puntos faciales detectados:</strong> ${landmarks.positions.length}</p>
+            `;
+            this.detectionResult.style.display = 'block';
+        }
+        
+        async verifyFace(faceDescriptor) {
+            this.showMessage('✅ Rostro detectado! Verificando identidad...', 'info');
+            
+            // ✅ AGREGAR FEEDBACK DE PROGRESO ANIMADO
+            let progressDots = '';
+            this.progressInterval = setInterval(() => {
+                progressDots = progressDots.length >= 3 ? '' : progressDots + '.';
+                this.showMessage(`✅ Rostro detectado! Verificando identidad${progressDots}`, 'info');
+            }, 500);
+            
+            try {
+                // Convertir Float32Array a Array normal para JSON
+                const descriptorArray = Array.from(faceDescriptor);
+                
+                console.log('📤 Enviando descriptor al servidor...', {
+                    username: this.username,
+                    descriptorLength: descriptorArray.length
+                });
+                
+                // Agregar timeout
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 30000);
+                
+                const response = await fetch('/api/face-id/verify-local', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: this.username,
+                        face_descriptor: descriptorArray
+                    }),
+                    signal: controller.signal
+                });
+                
+                clearTimeout(timeoutId);
+                
+                // ✅ LIMPIAR INTERVALO
+                this.clearProgressInterval();
+                
+                console.log('📥 Respuesta recibida del servidor, status:', response.status);
+                
+                if (!response.ok) {
+                    throw new Error(`Error HTTP: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                console.log('📊 Resultado del servidor:', result);
+                
+                if (result.success) {
+                    this.showMessage('✅ ¡Autenticación facial exitosa! Redirigiendo...', 'success');
+                    
+                    setTimeout(() => {
+                        window.location.href = '/dashboard';
+                    }, 1500);
+                } else {
+                    this.showMessage('❌ ' + result.error + (result.similarity ? ` (Similitud: ${(result.similarity * 100).toFixed(1)}%)` : ''), 'error');
+                    this.detectBtn.disabled = false;
+                    this.isDetecting = false;
+                }
+                
+            } catch (error) {
+                // ✅ LIMPIAR INTERVALO EN ERROR
+                this.clearProgressInterval();
+                console.error('❌ Error en verificación:', error);
+                
+                let userMessage = 'Error de conexión: ' + error.message;
+                if (error.name === 'AbortError') {
+                    userMessage = '❌ Tiempo de espera agotado. El servidor no respondió.';
+                } else if (error.message.includes('Failed to fetch')) {
+                    userMessage = '❌ Error de conexión con el servidor. Verifica tu conexión a internet.';
+                }
+                
+                this.showMessage(userMessage, 'error');
+                this.detectBtn.disabled = false;
+                this.isDetecting = false;
+            }
+        }
+        
+        clearProgressInterval() {
+            if (this.progressInterval) {
+                clearInterval(this.progressInterval);
+                this.progressInterval = null;
+            }
+        }
+        
+        showMessage(message, type) {
+            const bgColor = type === 'success' ? '#d4edda' : 
+                           type === 'error' ? '#f8d7da' : '#d1ecf1';
+            const color = type === 'success' ? '#155724' : 
+                         type === 'error' ? '#721c24' : '#0c5460';
+            const borderColor = type === 'success' ? '#c3e6cb' : 
+                              type === 'error' ? '#f5c6cb' : '#bee5eb';
+            
+            this.statusMessage.style.cssText = `
+                background: ${bgColor}; 
+                color: ${color}; 
+                padding: 1rem; 
+                border-radius: 6px; 
+                border: 1px solid ${borderColor};
+                margin: 1rem 0;
+                transition: all 0.3s ease;
+            `;
+            this.statusMessage.textContent = message;
+            this.statusMessage.style.display = 'block';
+            
+            console.log(`📝 Mensaje [${type}]: ${message}`);
+            
+            // Auto-eliminar mensajes de éxito después de 5 segundos (excepto redirección)
+            if (type === 'success' && !message.includes('Redirigiendo')) {
+                setTimeout(() => {
+                    this.statusMessage.style.display = 'none';
+                }, 5000);
+            }
+        }
+    }
+    
+    document.addEventListener('DOMContentLoaded', () => {
+        console.log('🚀 Inicializando Face ID Login...');
+        new FaceIDLogin();
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,1224 @@
+{% extends "base.html" %}
+
+{% block title %}Inicio — Rutas Óptimas{% endblock %}
+
+{% block content %}
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600;700&display=swap');
+
+  .main-content {
+    padding: 0 !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+  }
+
+  /* ══════════════════════════════
+     HERO SECTION
+  ══════════════════════════════ */
+  .cyber-hero {
+    position: relative;
+    min-height: calc(100vh - 60px);
+    background: #020510;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    font-family: 'Rajdhani', sans-serif;
+  }
+
+  /* Fondo estrellado */
+  .stars {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+  }
+
+  .stars::before, .stars::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 5%  10%, rgba(0,212,255,0.9)  0%, transparent 100%),
+      radial-gradient(1px 1px at 18% 25%, rgba(255,255,255,0.7) 0%, transparent 100%),
+      radial-gradient(1px 1px at 32% 8%,  rgba(139,92,246,0.8)  0%, transparent 100%),
+      radial-gradient(1px 1px at 47% 30%, rgba(255,255,255,0.5) 0%, transparent 100%),
+      radial-gradient(1px 1px at 60% 15%, rgba(0,212,255,0.7)   0%, transparent 100%),
+      radial-gradient(1px 1px at 75% 40%, rgba(255,255,255,0.6) 0%, transparent 100%),
+      radial-gradient(1px 1px at 88% 22%, rgba(139,92,246,0.6)  0%, transparent 100%),
+      radial-gradient(2px 2px at 92% 65%, rgba(0,212,255,0.5)   0%, transparent 100%),
+      radial-gradient(1px 1px at 12% 70%, rgba(255,255,255,0.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 55% 80%, rgba(139,92,246,0.5)  0%, transparent 100%),
+      radial-gradient(1px 1px at 28% 88%, rgba(0,212,255,0.6)   0%, transparent 100%),
+      radial-gradient(1px 1px at 70% 92%, rgba(255,255,255,0.5) 0%, transparent 100%);
+  }
+
+  .stars::after {
+    background-image:
+      radial-gradient(1px 1px at 8%  45%, rgba(0,255,204,0.5)   0%, transparent 100%),
+      radial-gradient(1px 1px at 22% 55%, rgba(255,255,255,0.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 40% 65%, rgba(0,212,255,0.4)   0%, transparent 100%),
+      radial-gradient(1px 1px at 65% 55%, rgba(139,92,246,0.4)  0%, transparent 100%),
+      radial-gradient(1px 1px at 80% 75%, rgba(255,255,255,0.5) 0%, transparent 100%),
+      radial-gradient(2px 2px at 95% 10%, rgba(0,212,255,0.8)   0%, transparent 100%),
+      radial-gradient(1px 1px at 50% 50%, rgba(255,255,255,0.3) 0%, transparent 100%);
+    animation: twinkle 5s ease-in-out infinite alternate;
+  }
+
+  @keyframes twinkle {
+    0%   { opacity: 0.6; }
+    100% { opacity: 1; }
+  }
+
+  /* Grid */
+  .grid-bg {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.025) 1px, transparent 1px);
+    background-size: 70px 70px;
+  }
+
+  /* Neblina de color */
+  .nebula {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    pointer-events: none;
+  }
+
+  .nebula-1 {
+    width: 400px; height: 400px;
+    background: rgba(0,212,255,0.06);
+    top: -100px; left: -100px;
+    animation: nebulaDrift 12s ease-in-out infinite alternate;
+  }
+
+  .nebula-2 {
+    width: 350px; height: 350px;
+    background: rgba(139,92,246,0.07);
+    bottom: -80px; left: 30%;
+    animation: nebulaDrift 15s ease-in-out infinite alternate-reverse;
+  }
+
+  @keyframes nebulaDrift {
+    from { transform: translate(0,0); }
+    to   { transform: translate(30px, 20px); }
+  }
+
+  /* ── CANVAS GLOBO 3D ── */
+  #earthCanvas {
+    position: absolute;
+    top: 90px;
+    left: 90px;
+    width: 420px;
+    height: 420px;
+    border-radius: 50%;
+    z-index: 4;
+  }
+
+  /* ── TIERRA ── */
+  .earth-wrapper {
+    position: absolute;
+    right: -60px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 600px;
+    height: 600px;
+    pointer-events: none;
+  }
+
+  .earth {
+    position: absolute;
+    width: 420px;
+    height: 420px;
+    top: 90px;
+    left: 90px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 38% 38%,
+      rgba(0,212,255,0.18) 0%,
+      rgba(0,100,200,0.45) 35%,
+      rgba(0,30,80,0.92)  68%,
+      #010d20 100%
+    );
+    animation: earthPulse 8s ease-in-out infinite alternate;
+  }
+
+  @keyframes earthPulse {
+    from {
+      box-shadow:
+        0 0 0 1px  rgba(0,212,255,0.35),
+        0 0 50px   rgba(0,212,255,0.22),
+        0 0 100px  rgba(0,212,255,0.10),
+        inset 0 0 70px rgba(0,212,255,0.12);
+    }
+    to {
+      box-shadow:
+        0 0 0 1px  rgba(139,92,246,0.4),
+        0 0 50px   rgba(139,92,246,0.22),
+        0 0 100px  rgba(139,92,246,0.10),
+        inset 0 0 70px rgba(139,92,246,0.12);
+    }
+  }
+
+  /* Continentes */
+  .earth-continents {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    overflow: hidden;
+    opacity: 0.55;
+    animation: continentSpin 30s linear infinite;
+  }
+
+  @keyframes continentSpin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+
+  /* Ciudades */
+  .city {
+    position: absolute;
+    border-radius: 50%;
+    animation: cityBlink var(--d, 2s) ease-in-out infinite;
+  }
+
+  @keyframes cityBlink {
+    0%,100% { opacity: 0.2; transform: scale(1); }
+    50%      { opacity: 1; transform: scale(2.2); filter: drop-shadow(0 0 4px var(--c, #00d4ff)); }
+  }
+
+  /* Líneas de ruta sobre la tierra */
+  .route-lines {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    overflow: hidden;
+    opacity: 0.3;
+  }
+
+  /* Órbitas */
+  .orbit {
+    position: absolute;
+    top: 50%; left: 50%;
+    border-radius: 50%;
+    border: 1px solid rgba(0,212,255,0.15);
+    animation: orbitSpin var(--spd, 15s) linear infinite;
+    transform-origin: center center;
+  }
+
+  .orbit::after {
+    content: '';
+    position: absolute;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--oc, #00d4ff);
+    top: -4px; left: 50%;
+    transform: translateX(-50%);
+    box-shadow: 0 0 12px var(--oc, #00d4ff), 0 0 24px var(--oc, #00d4ff);
+  }
+
+  @keyframes orbitSpin {
+    from { transform: translate(-50%,-50%) rotate(0deg); }
+    to   { transform: translate(-50%,-50%) rotate(360deg); }
+  }
+
+  /* Atmosfera glow */
+  .atmosphere {
+    position: absolute;
+    top: 90px; left: 90px;
+    width: 420px; height: 420px;
+    border-radius: 50%;
+    background: transparent;
+    box-shadow: 0 0 60px 20px rgba(0,212,255,0.06);
+    animation: atmoBreath 6s ease-in-out infinite alternate;
+  }
+
+  @keyframes atmoBreath {
+    from { box-shadow: 0 0 60px 20px rgba(0,212,255,0.06); }
+    to   { box-shadow: 0 0 80px 30px rgba(139,92,246,0.09); }
+  }
+
+  /* ── Hero content ── */
+  .hero-content {
+    position: relative;
+    z-index: 10;
+    max-width: 580px;
+    margin-left: 7vw;
+    padding: 2rem 0;
+  }
+
+  .hero-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Orbitron', monospace;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: rgba(0,212,255,0.7);
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    border: 1px solid rgba(0,212,255,0.25);
+    padding: 0.35rem 0.9rem;
+    margin-bottom: 1.5rem;
+    background: rgba(0,212,255,0.04);
+    clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+    animation: tagGlow 3s ease-in-out infinite alternate;
+  }
+
+  @keyframes tagGlow {
+    from { border-color: rgba(0,212,255,0.25); }
+    to   { border-color: rgba(0,212,255,0.6); box-shadow: 0 0 15px rgba(0,212,255,0.1); }
+  }
+
+  .tag-dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: #00d4ff;
+    box-shadow: 0 0 6px #00d4ff;
+    animation: dotPulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes dotPulse {
+    0%,100% { opacity: 1; }
+    50%      { opacity: 0.3; }
+  }
+
+  .hero-title {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(2rem, 4vw, 3.4rem);
+    font-weight: 900;
+    color: #ffffff;
+    line-height: 1.05;
+    letter-spacing: 0.02em;
+    margin-bottom: 0.5rem;
+    animation: fadeUp 0.8s ease both;
+  }
+
+  .hero-title .accent {
+    background: linear-gradient(135deg, #00d4ff, #8b5cf6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .hero-subtitle {
+    font-size: 1.1rem;
+    font-weight: 300;
+    color: rgba(0,212,255,0.55);
+    letter-spacing: 0.06em;
+    line-height: 1.6;
+    margin-bottom: 2.5rem;
+    max-width: 480px;
+    animation: fadeUp 0.8s 0.2s ease both;
+  }
+
+  /* ── Botones hero ── */
+  .hero-buttons {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    animation: fadeUp 0.8s 0.4s ease both;
+  }
+
+  .btn-cyber-primary {
+    padding: 0.85rem 2rem;
+    background: linear-gradient(135deg, rgba(0,212,255,0.2), rgba(139,92,246,0.15));
+    border: 1px solid rgba(0,212,255,0.6);
+    color: #00d4ff;
+    font-family: 'Orbitron', monospace;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    text-decoration: none;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s;
+    clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+  }
+
+  .btn-cyber-primary::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(0,212,255,0.35), rgba(139,92,246,0.25));
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .btn-cyber-primary:hover {
+    color: #fff;
+    border-color: rgba(0,212,255,1);
+    box-shadow: 0 0 30px rgba(0,212,255,0.3), 0 0 60px rgba(0,212,255,0.1);
+    transform: translateY(-2px);
+  }
+
+  .btn-cyber-primary:hover::before { opacity: 1; }
+
+  .btn-cyber-secondary {
+    padding: 0.85rem 1.8rem;
+    background: transparent;
+    border: 1px solid rgba(139,92,246,0.4);
+    color: rgba(167,139,250,0.85);
+    font-family: 'Orbitron', monospace;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: all 0.3s;
+    clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+  }
+
+  .btn-cyber-secondary:hover {
+    background: rgba(139,92,246,0.12);
+    border-color: rgba(139,92,246,0.8);
+    color: #a78bfa;
+    box-shadow: 0 0 20px rgba(139,92,246,0.25);
+    transform: translateY(-2px);
+  }
+
+  .btn-cyber-ghost {
+    padding: 0.85rem 1.6rem;
+    background: transparent;
+    border: 1px solid rgba(0,255,204,0.3);
+    color: rgba(0,255,204,0.7);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: all 0.3s;
+    clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+  }
+
+  .btn-cyber-ghost:hover {
+    background: rgba(0,255,204,0.06);
+    border-color: rgba(0,255,204,0.7);
+    color: #00ffcc;
+    box-shadow: 0 0 16px rgba(0,255,204,0.2);
+    transform: translateY(-2px);
+  }
+
+  /* Stats rápidos */
+  .hero-stats {
+    display: flex;
+    gap: 2rem;
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid rgba(0,212,255,0.1);
+    animation: fadeUp 0.8s 0.6s ease both;
+  }
+
+  .stat-item { text-align: left; }
+
+  .stat-number {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.5rem;
+    font-weight: 900;
+    background: linear-gradient(135deg, #00d4ff, #8b5cf6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-size: 0.72rem;
+    color: rgba(0,212,255,0.4);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-top: 0.2rem;
+  }
+
+  /* ══════════════════════════════
+     FEATURES SECTION
+  ══════════════════════════════ */
+  .cyber-features {
+    background: #020510;
+    padding: 5rem 0;
+    position: relative;
+    overflow: hidden;
+    font-family: 'Rajdhani', sans-serif;
+  }
+
+  .cyber-features::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(0,212,255,0.4), transparent);
+  }
+
+  .features-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 3rem;
+  }
+
+  .section-header {
+    text-align: center;
+    margin-bottom: 3.5rem;
+  }
+
+  .section-tag {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.62rem;
+    font-weight: 700;
+    color: rgba(0,212,255,0.5);
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    margin-bottom: 0.8rem;
+  }
+
+  .section-title {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(1.4rem, 2.5vw, 2rem);
+    font-weight: 900;
+    color: #fff;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.6rem;
+  }
+
+  .section-line {
+    width: 80px;
+    height: 2px;
+    background: linear-gradient(90deg, #00d4ff, #8b5cf6);
+    margin: 0 auto;
+    border-radius: 1px;
+  }
+
+  /* Grid de cards */
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+  }
+
+  .feature-card {
+    position: relative;
+    padding: 2rem 1.8rem;
+    background: rgba(2,10,30,0.8);
+    border: 1px solid rgba(0,212,255,0.1);
+    clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
+    transition: all 0.35s;
+    overflow: hidden;
+    cursor: default;
+  }
+
+  .feature-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
+    padding: 1px;
+    background: linear-gradient(135deg, rgba(0,212,255,0.3), rgba(139,92,246,0.15), transparent);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0.6;
+    transition: opacity 0.35s;
+    pointer-events: none;
+  }
+
+  /* Brillo de fondo al hover */
+  .feature-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% 50%, rgba(0,212,255,0.06) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.35s;
+    pointer-events: none;
+  }
+
+  .feature-card:hover {
+    border-color: rgba(0,212,255,0.25);
+    transform: translateY(-4px);
+    box-shadow: 0 10px 40px rgba(0,212,255,0.08), 0 2px 10px rgba(0,0,0,0.4);
+  }
+
+  .feature-card:hover::before { opacity: 1; }
+  .feature-card:hover::after  { opacity: 1; }
+
+  /* Número de feature */
+  .feature-number {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: rgba(0,212,255,0.25);
+    letter-spacing: 0.2em;
+    margin-bottom: 1rem;
+  }
+
+  .feature-icon-wrap {
+    width: 50px;
+    height: 50px;
+    border: 1px solid rgba(0,212,255,0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    margin-bottom: 1.2rem;
+    background: rgba(0,212,255,0.05);
+    transition: all 0.35s;
+    position: relative;
+  }
+
+  .feature-card:hover .feature-icon-wrap {
+    border-color: rgba(0,212,255,0.5);
+    background: rgba(0,212,255,0.1);
+    box-shadow: 0 0 20px rgba(0,212,255,0.15);
+  }
+
+  .feature-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #e0f7ff;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 0.7rem;
+  }
+
+  .feature-desc {
+    font-size: 0.9rem;
+    font-weight: 300;
+    color: rgba(0,212,255,0.4);
+    line-height: 1.6;
+    letter-spacing: 0.03em;
+  }
+
+  /* Card con acento morado */
+  .feature-card.purple .feature-icon-wrap {
+    border-color: rgba(139,92,246,0.2);
+    background: rgba(139,92,246,0.05);
+  }
+
+  .feature-card.purple:hover .feature-icon-wrap {
+    border-color: rgba(139,92,246,0.5);
+    background: rgba(139,92,246,0.1);
+    box-shadow: 0 0 20px rgba(139,92,246,0.15);
+  }
+
+  .feature-card.purple::before {
+    background: linear-gradient(135deg, rgba(139,92,246,0.3), rgba(0,212,255,0.1), transparent);
+  }
+
+  .feature-card.purple:hover {
+    border-color: rgba(139,92,246,0.25);
+    box-shadow: 0 10px 40px rgba(139,92,246,0.08), 0 2px 10px rgba(0,0,0,0.4);
+  }
+
+  .feature-card.purple::after {
+    background: radial-gradient(circle at 50% 50%, rgba(139,92,246,0.06) 0%, transparent 70%);
+  }
+
+  /* Card con acento verde */
+  .feature-card.teal .feature-icon-wrap {
+    border-color: rgba(0,255,204,0.2);
+    background: rgba(0,255,204,0.04);
+  }
+
+  .feature-card.teal:hover .feature-icon-wrap {
+    border-color: rgba(0,255,204,0.5);
+    background: rgba(0,255,204,0.08);
+    box-shadow: 0 0 20px rgba(0,255,204,0.12);
+  }
+
+  .feature-card.teal::before {
+    background: linear-gradient(135deg, rgba(0,255,204,0.25), rgba(0,212,255,0.1), transparent);
+  }
+
+  .feature-card.teal:hover {
+    border-color: rgba(0,255,204,0.2);
+    box-shadow: 0 10px 40px rgba(0,255,204,0.06), 0 2px 10px rgba(0,0,0,0.4);
+  }
+
+  /* ── CTA final ── */
+  .cyber-cta {
+    background: #020510;
+    padding: 4rem 3rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    font-family: 'Rajdhani', sans-serif;
+  }
+
+  .cyber-cta::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(139,92,246,0.4), transparent);
+  }
+
+  .cta-title {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(1.2rem, 2.5vw, 1.8rem);
+    font-weight: 900;
+    color: #fff;
+    margin-bottom: 0.8rem;
+    letter-spacing: 0.05em;
+  }
+
+  .cta-sub {
+    font-size: 1rem;
+    color: rgba(0,212,255,0.45);
+    letter-spacing: 0.08em;
+    margin-bottom: 2rem;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 900px) {
+    .earth-wrapper { display: none; }
+    .hero-content  { margin-left: auto; margin-right: auto; padding: 2rem; max-width: 100%; text-align: center; }
+    .hero-buttons  { justify-content: center; }
+    .hero-stats    { justify-content: center; }
+    .features-grid { grid-template-columns: 1fr 1fr; }
+  }
+
+  @media (max-width: 600px) {
+    .features-grid { grid-template-columns: 1fr; }
+    .features-inner { padding: 0 1.5rem; }
+  }
+</style>
+
+<!-- ══════════ HERO ══════════ -->
+<section class="cyber-hero">
+  <div class="stars"></div>
+  <div class="grid-bg"></div>
+  <div class="nebula nebula-1"></div>
+  <div class="nebula nebula-2"></div>
+
+  <!-- TIERRA HOLOGRÁFICA -->
+  <div class="earth-wrapper">
+    <canvas id="earthCanvas"></canvas>
+    <div class="atmosphere"></div>
+
+    <div class="earth">
+      <!-- Continentes animados -->
+      <svg class="earth-continents" viewBox="0 0 420 420" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Norteamérica -->
+        <path d="M80 100 L130 82 L175 95 L198 138 L175 172 L140 184 L105 162 L80 138 Z"
+          fill="rgba(0,212,255,0.18)" stroke="rgba(0,212,255,0.45)" stroke-width="1.2"/>
+        <!-- Sudamérica -->
+        <path d="M125 210 L162 198 L185 232 L172 288 L148 310 L120 278 L114 242 Z"
+          fill="rgba(0,212,255,0.14)" stroke="rgba(0,212,255,0.38)" stroke-width="1"/>
+        <!-- Europa -->
+        <path d="M220 96 L256 84 L274 108 L256 132 L224 126 Z"
+          fill="rgba(139,92,246,0.2)" stroke="rgba(139,92,246,0.45)" stroke-width="1"/>
+        <!-- África -->
+        <path d="M224 142 L260 135 L278 174 L264 228 L235 240 L212 208 L216 170 Z"
+          fill="rgba(0,212,255,0.15)" stroke="rgba(0,212,255,0.35)" stroke-width="1"/>
+        <!-- Asia -->
+        <path d="M270 88 L375 76 L396 122 L362 156 L304 162 L270 132 Z"
+          fill="rgba(139,92,246,0.15)" stroke="rgba(139,92,246,0.38)" stroke-width="1"/>
+        <!-- India -->
+        <path d="M300 155 L330 148 L340 185 L315 205 L295 185 Z"
+          fill="rgba(0,212,255,0.12)" stroke="rgba(0,212,255,0.3)" stroke-width="0.8"/>
+        <!-- Oceanía -->
+        <path d="M348 228 L385 222 L395 252 L372 264 L346 250 Z"
+          fill="rgba(0,255,204,0.12)" stroke="rgba(0,255,204,0.32)" stroke-width="0.8"/>
+        <!-- Antártida hint -->
+        <path d="M160 360 L260 355 L280 375 L140 378 Z"
+          fill="rgba(139,92,246,0.08)" stroke="rgba(139,92,246,0.2)" stroke-width="0.6"/>
+
+        <!-- Líneas de latitud -->
+        <ellipse cx="210" cy="210" rx="200" ry="50" stroke="rgba(0,212,255,0.06)" stroke-width="0.8" fill="none"/>
+        <ellipse cx="210" cy="210" rx="200" ry="130" stroke="rgba(0,212,255,0.04)" stroke-width="0.6" fill="none"/>
+        <!-- Ecuador -->
+        <line x1="10" y1="210" x2="410" y2="210" stroke="rgba(0,212,255,0.08)" stroke-width="0.8"/>
+      </svg>
+
+      <!-- Ciudades -->
+      <div class="city" style="width:5px;height:5px;background:#00d4ff;left:18%;top:33%;--d:1.7s;--c:#00d4ff;box-shadow:0 0 6px #00d4ff;"></div>
+      <div class="city" style="width:4px;height:4px;background:#8b5cf6;left:51%;top:25%;--d:2.4s;--c:#8b5cf6;box-shadow:0 0 5px #8b5cf6;"></div>
+      <div class="city" style="width:6px;height:6px;background:#00d4ff;left:68%;top:30%;--d:1.4s;--c:#00d4ff;box-shadow:0 0 8px #00d4ff;"></div>
+      <div class="city" style="width:4px;height:4px;background:#a78bfa;left:60%;top:43%;--d:3.1s;--c:#a78bfa;box-shadow:0 0 5px #a78bfa;"></div>
+      <div class="city" style="width:5px;height:5px;background:#00ffcc;left:30%;top:57%;--d:2.0s;--c:#00ffcc;box-shadow:0 0 7px #00ffcc;"></div>
+      <div class="city" style="width:3px;height:3px;background:#00d4ff;left:74%;top:61%;--d:2.8s;--c:#00d4ff;box-shadow:0 0 5px #00d4ff;"></div>
+      <div class="city" style="width:4px;height:4px;background:#8b5cf6;left:42%;top:70%;--d:1.9s;--c:#8b5cf6;box-shadow:0 0 6px #8b5cf6;"></div>
+      <div class="city" style="width:5px;height:5px;background:#00d4ff;left:85%;top:42%;--d:2.2s;--c:#00d4ff;box-shadow:0 0 6px #00d4ff;"></div>
+
+      <!-- Rutas sobre la tierra -->
+      <svg class="route-lines" viewBox="0 0 420 420" fill="none">
+        <path d="M76 138 Q180 60 355 122" stroke="rgba(0,212,255,0.5)" stroke-width="1" stroke-dasharray="4 4">
+          <animate attributeName="stroke-dashoffset" from="0" to="-40" dur="3s" repeatCount="indefinite"/>
+        </path>
+        <path d="M125 242 Q210 300 355 252" stroke="rgba(0,255,204,0.4)" stroke-width="1" stroke-dasharray="4 4">
+          <animate attributeName="stroke-dashoffset" from="0" to="40" dur="4s" repeatCount="indefinite"/>
+        </path>
+        <path d="M175 162 Q240 200 315 162" stroke="rgba(139,92,246,0.5)" stroke-width="1" stroke-dasharray="3 5">
+          <animate attributeName="stroke-dashoffset" from="0" to="-30" dur="2.5s" repeatCount="indefinite"/>
+        </path>
+      </svg>
+    </div>
+
+    <!-- Órbitas -->
+    <div class="orbit" style="width:560px;height:560px;margin-left:-280px;margin-top:-280px;--spd:20s;--oc:#00d4ff;transform:translate(-50%,-50%) rotateX(72deg);"></div>
+    <div class="orbit" style="width:610px;height:610px;margin-left:-305px;margin-top:-305px;--spd:28s;--oc:#8b5cf6;transform:translate(-50%,-50%) rotateX(55deg) rotateZ(50deg);"></div>
+    <div class="orbit" style="width:530px;height:530px;margin-left:-265px;margin-top:-265px;--spd:15s;--oc:#00ffcc;transform:translate(-50%,-50%) rotateX(80deg) rotateZ(-25deg);"></div>
+  </div>
+
+  <!-- Contenido textual -->
+  <div class="hero-content">
+    <div class="hero-tag">
+      <div class="tag-dot"></div>
+      Sistema activo — México
+    </div>
+
+    <h1 class="hero-title">
+      RUTAS<br>
+      <span class="accent">ÓPTIMAS</span>
+    </h1>
+
+    <p class="hero-subtitle">
+      Algoritmos de optimización avanzados para encontrar el camino más eficiente. Ahorra tiempo, combustible y recursos en cada viaje.
+    </p>
+
+    <div class="hero-buttons">
+      {% if session.user_id %}
+        <a href="{{ url_for('dashboard') }}" class="btn-cyber-primary">▶ IR AL DASHBOARD</a>
+      {% else %}
+        <a href="{{ url_for('register') }}"    class="btn-cyber-primary">▶ COMENZAR AHORA</a>
+        <a href="{{ url_for('login') }}"        class="btn-cyber-secondary">INICIAR SESIÓN</a>
+        <a href="{{ url_for('face_id_login') }}" class="btn-cyber-ghost">📷 FACE ID</a>
+      {% endif %}
+    </div>
+
+    <div class="hero-stats">
+      <div class="stat-item">
+        <div class="stat-number">OSRM</div>
+        <div class="stat-label">Motor de rutas</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number">RSA</div>
+        <div class="stat-label">Firma digital</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number">Face</div>
+        <div class="stat-label">Biometría</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ FEATURES ══════════ -->
+<section class="cyber-features">
+  <div class="features-inner">
+    <div class="section-header">
+      <p class="section-tag">// Módulos del sistema</p>
+      <h2 class="section-title">CARACTERÍSTICAS PRINCIPALES</h2>
+      <div class="section-line"></div>
+    </div>
+
+    <div class="features-grid">
+
+      <div class="feature-card">
+        <div class="feature-number">01</div>
+        <div class="feature-icon-wrap">🚗</div>
+        <h3 class="feature-title">Rutas Optimizadas</h3>
+        <p class="feature-desc">Encuentra el camino más corto usando el algoritmo de colonia de hormigas integrado con OSRM.</p>
+      </div>
+
+      <div class="feature-card purple">
+        <div class="feature-number">02</div>
+        <div class="feature-icon-wrap">🔒</div>
+        <h3 class="feature-title">Seguridad Avanzada</h3>
+        <p class="feature-desc">Autenticación con reconocimiento facial y encriptación de contraseñas de nivel empresarial.</p>
+      </div>
+
+      <div class="feature-card teal">
+        <div class="feature-number">03</div>
+        <div class="feature-icon-wrap">📊</div>
+        <h3 class="feature-title">Historial de Viajes</h3>
+        <p class="feature-desc">Guarda y revisa todos tus viajes anteriores con métricas detalladas de cada ruta.</p>
+      </div>
+
+      <div class="feature-card teal">
+        <div class="feature-number">04</div>
+        <div class="feature-icon-wrap">🗺️</div>
+        <h3 class="feature-title">Mapas Interactivos</h3>
+        <p class="feature-desc">Sistema completo de mapas con rutas en tiempo real y geocodificación para México.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-number">05</div>
+        <div class="feature-icon-wrap">⚡</div>
+        <h3 class="feature-title">Multi-Transporte</h3>
+        <p class="feature-desc">Calcula rutas optimizadas para conducir, caminar o andar en bicicleta según tu necesidad.</p>
+      </div>
+
+      <div class="feature-card purple">
+        <div class="feature-number">06</div>
+        <div class="feature-icon-wrap">📄</div>
+        <h3 class="feature-title">Firma Digital RSA</h3>
+        <p class="feature-desc">Firma documentos PDF con criptografía RSA de clave pública. Seguridad certificada.</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ CTA ══════════ -->
+{% if not session.user_id %}
+<section class="cyber-cta">
+  <p class="section-tag" style="color:rgba(139,92,246,0.5);margin-bottom:0.8rem;">// Acceso al sistema</p>
+  <h2 class="cta-title">¿LISTO PARA OPTIMIZAR TUS RUTAS?</h2>
+  <p class="cta-sub">Crea tu cuenta en segundos y empieza a navegar de forma inteligente</p>
+  <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;">
+    <a href="{{ url_for('register') }}" class="btn-cyber-primary">▶ CREAR CUENTA GRATIS</a>
+    <a href="{{ url_for('login') }}"    class="btn-cyber-secondary">INICIAR SESIÓN</a>
+  </div>
+</section>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+<script>
+(function () {
+  const canvas = document.getElementById('earthCanvas');
+  if (!canvas) return;
+
+  // ── Cursor drag ───────────────────────────────────────────
+  canvas.style.cursor = 'grab';
+  canvas.style.pointerEvents = 'auto';
+
+  // ── Renderer ──────────────────────────────────────────────
+  const W = canvas.clientWidth, H = canvas.clientHeight;
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setSize(W, H);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(45, W / H, 0.1, 1000);
+  camera.position.z = 2.5;
+
+  const world = new THREE.Group();
+  scene.add(world);
+
+  // ── Tierra ────────────────────────────────────────────────
+  const loader = new THREE.TextureLoader();
+  const earthMap    = loader.load('https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg');
+  const earthLights = loader.load('https://threejs.org/examples/textures/planets/earth_lights_2048.png');
+  const earthSpec   = loader.load('https://threejs.org/examples/textures/planets/earth_specular_2048.jpg');
+
+  world.add(new THREE.Mesh(
+    new THREE.SphereGeometry(1, 64, 64),
+    new THREE.MeshPhongMaterial({ map: earthMap, specularMap: earthSpec, specular: new THREE.Color(0x334466), shininess: 18 })
+  ));
+  world.add(new THREE.Mesh(
+    new THREE.SphereGeometry(1.005, 64, 64),
+    new THREE.MeshBasicMaterial({ map: earthLights, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false })
+  ));
+  world.add(new THREE.Mesh(
+    new THREE.SphereGeometry(1.06, 64, 64),
+    new THREE.MeshPhongMaterial({ color: 0x0077ff, transparent: true, opacity: 0.07, side: THREE.FrontSide, blending: THREE.AdditiveBlending, depthWrite: false })
+  ));
+
+  // ── Luces ─────────────────────────────────────────────────
+  scene.add(new THREE.AmbientLight(0xffffff, 0.9));
+  const sun = new THREE.DirectionalLight(0xffd9a0, 1.4);
+  sun.position.set(5, 3, 5); scene.add(sun);
+  const rim = new THREE.DirectionalLight(0x0044ff, 0.5);
+  rim.position.set(-4, -2, -3); scene.add(rim);
+
+  // ── Helpers ───────────────────────────────────────────────
+  function ll2v(lat, lon, r) {
+    const phi   = (90 - lat)  * Math.PI / 180;
+    const theta = (lon + 180) * Math.PI / 180;
+    return new THREE.Vector3(
+      -r * Math.sin(phi) * Math.cos(theta),
+       r * Math.cos(phi),
+       r * Math.sin(phi) * Math.sin(theta)
+    );
+  }
+  function rnd(a, b) { return a + Math.random() * (b - a); }
+  function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+  // ── Nodos ─────────────────────────────────────────────────
+  // Ciudades/puertos principales
+  const CITIES = [
+    [40.71,-74.01],[51.51,-0.13],[48.85,2.35],[52.52,13.40],[55.75,37.62],
+    [39.90,116.39],[35.68,139.69],[1.35,103.82],[-33.87,151.21],[19.43,-99.13],
+    [-23.55,-46.63],[28.61,77.21],[41.01,28.96],[30.04,31.24],[-26.20,28.04],
+    [37.77,-122.42],[43.65,-79.38],[25.20,55.27],[22.31,114.17],[13.75,100.52],
+    [59.93,30.32],[31.23,121.47],[14.69,-17.44],[6.37,2.42],[-34.61,-58.38],
+    [33.89,35.50],[24.47,54.37],[22.54,88.34],[10.80,106.72],[50.45,30.52],
+  ];
+
+  // Puntos de cable submarino (principales)
+  const CABLE_NODES = [
+    [50.82,1.18],[51.45,-0.97],[40.85,-73.95],[25.77,-80.19],[1.28,103.85],
+    [22.25,114.17],[35.65,139.75],[37.95,23.72],[41.02,28.98],[30.07,31.25],
+    [-33.86,151.20],[53.33,-6.25],[43.29,5.38],[36.72,-4.42],[28.13,-15.43],
+    [-25.96,32.58],[4.35,18.55],[-4.32,15.32],[14.93,-23.51],[18.07,-15.95],
+    [60.17,24.94],[55.68,12.57],[53.55,10.00],[59.91,10.75],[52.37,4.90],
+    [38.72,-9.14],[41.15,-8.62],[-22.91,-43.17],[-8.84,13.23],[6.36,-10.80],
+  ];
+
+  // Rutas de pipeline (puntos de origen/destino)
+  const PIPELINE_PAIRS = [
+    [[57,68],[51.16,71.47]],   // Kazajistán → Rusia
+    [[55.75,37.62],[52.52,13.40]], // Moscú → Berlín
+    [[55.75,37.62],[48.85,2.35]], // Moscú → París
+    [[36.2,36.16],[41.01,28.96]], // Siria → Estambul
+    [[30.04,31.24],[36.85,10.19]], // El Cairo → Túnez
+    [[28.00,2.00],[36.72,-4.42]], // Argelia → Málaga
+    [[52.37,4.90],[51.51,-0.13]], // Ámsterdam → Londres
+    [[39.90,116.39],[55.75,37.62]], // Pekín → Moscú
+    [[25.20,55.27],[41.01,28.96]], // Dubái → Estambul
+    [[51.51,-0.13],[55.75,37.62]], // Londres → Moscú
+    [[19.43,-99.13],[29.76,-95.37]], // CDMX → Houston
+    [[29.76,-95.37],[40.71,-74.01]], // Houston → NY
+    [[-23.55,-46.63],[-25.43,-49.27]], // São Paulo → Curitiba
+    [[1.35,103.82],[13.75,100.52]], // Singapur → Bangkok
+    [[39.90,116.39],[22.31,114.17]], // Pekín → HK
+  ];
+
+  // Barcos AIS (posiciones simuladas en océanos)
+  const SHIP_ROUTES = [
+    [[51.5,-5],[36.13,-5.35],[30.04,31.24]], // Canal de la Mancha → Gibraltar → Suez
+    [[40.71,-74.01],[45,-30],[51.51,-0.13]], // NY → Atlántico → Londres
+    [[1.35,103.82],[12.8,45.03],[30.04,31.24]], // Singapur → Adén → Suez
+    [[-33.87,151.21],[-20,80],[28.61,77.21]], // Sídney → Océano Índico → Mumbai
+    [[35.68,139.69],[20,150],[37.77,-122.42]], // Tokio → Pacífico → San Francisco
+    [[22.31,114.17],[5,110],[1.35,103.82]], // HK → Malacca → Singapur
+    [[-33.86,18.42],[-25,20],[-4.32,15.32]], // Cape Town → África central → Congo
+    [[55.75,37.62],[65,35],[70,25]], // Ártico ruso
+    [[25.20,55.27],[15,55],[1.35,103.82]], // Golfo Pérsico → Índico → Singapur
+    [[19.43,-99.13],[15,-90],[1.35,103.82]], // CDMX → Canal → Pacífico
+  ];
+
+  // Entidades sancionadas (puntos rojos fijos)
+  const SANCTIONS = [
+    [55.75,37.62,'RU'],[39.03,125.75,'KP'],[35.69,51.39,'IR'],
+    [36.20,37.16,'SY'],[12.36,43.15,'YE'],[15.55,32.53,'SD'],
+    [3.86,11.52,'CM'],[4.36,18.56,'CF'],[0.22,6.61,'GQ'],
+    [6.37,-2.42,'BJ'],[14.05,-0.01,'BF'],[17.57,-3.99,'ML'],
+    [13.51,2.12,'NE'],[12.10,15.04,'TD'],[11.85,42.59,'DJ'],
+  ];
+
+  // ── Función genérica para crear arco animado ───────────────
+  const SPEED = 5; // multiplicador x5
+
+  function makeArcObj(v1, v2, col, arcR, lineOpMax, dotOpMax) {
+    const dist = v1.distanceTo(v2);
+    const mid = v1.clone().add(v2).multiplyScalar(0.5);
+    mid.normalize().multiplyScalar(arcR + dist * 0.5);
+    const curve = new THREE.QuadraticBezierCurve3(v1, mid, v2);
+    const pts = curve.getPoints(60);
+
+    const geo = new THREE.BufferGeometry().setFromPoints(pts);
+    const mat = new THREE.LineBasicMaterial({ color: col, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false });
+    const line = new THREE.Line(geo, mat);
+    world.add(line);
+
+    const dotG = new THREE.SphereGeometry(0.011, 6, 6);
+    const dotM = new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0, blending: THREE.AdditiveBlending });
+    const dot = new THREE.Mesh(dotG, dotM);
+    world.add(dot);
+
+    return {
+      line, dot, mat, dotM, curve,
+      progress: 0, phase: 'in',
+      delay: Math.floor(rnd(0, 100)),
+      speed: SPEED * (0.004 + rnd(0, 0.004)),
+      lineOpMax, dotOpMax,
+    };
+  }
+
+  // ── CAPA 1: Cables submarinos (cian claro) ─────────────────
+  const cableArcs = [];
+  for (let i = 0; i < 22; i++) {
+    const a = pick(CABLE_NODES), b = pick(CABLE_NODES);
+    if (a === b) continue;
+    cableArcs.push(makeArcObj(ll2v(a[0],a[1],1.0), ll2v(b[0],b[1],1.0), 0x00eeff, 1.0, 0.35, 0.9));
+  }
+
+  // ── CAPA 2: Pipelines (amarillo-naranja) ───────────────────
+  const pipeArcs = [];
+  PIPELINE_PAIRS.forEach(([a, b]) => {
+    pipeArcs.push(makeArcObj(ll2v(a[0],a[1],1.0), ll2v(b[0],b[1],1.0), 0xffaa00, 1.0, 0.4, 0.85));
+  });
+
+  // ── CAPA 3: Barcos AIS (verde lima, multi-hop) ─────────────
+  const shipArcs = [];
+  SHIP_ROUTES.forEach(route => {
+    for (let i = 0; i < route.length - 1; i++) {
+      const a = route[i], b = route[i+1];
+      shipArcs.push(makeArcObj(ll2v(a[0],a[1],1.0), ll2v(b[0],b[1],1.0), 0x44ff88, 1.0, 0.3, 1.0));
+    }
+  });
+
+  // ── CAPA 4: Sanciones (rojo, puntos fijos + pulso) ─────────
+  const sanctionDots = [];
+  SANCTIONS.forEach(([lat, lon]) => {
+    const pos = ll2v(lat, lon, 1.009);
+
+    const core = new THREE.Mesh(
+      new THREE.SphereGeometry(0.013, 8, 8),
+      new THREE.MeshBasicMaterial({ color: 0xff2244, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending })
+    );
+    core.position.copy(pos);
+    world.add(core);
+
+    const halo = new THREE.Mesh(
+      new THREE.SphereGeometry(0.028, 8, 8),
+      new THREE.MeshBasicMaterial({ color: 0xff0022, transparent: true, opacity: 0.2, blending: THREE.AdditiveBlending, depthWrite: false })
+    );
+    halo.position.copy(pos);
+    world.add(halo);
+    sanctionDots.push({ halo, t: rnd(0, Math.PI * 2) });
+  });
+
+  // ── Ciudades (puntos cian pequeños) ───────────────────────
+  CITIES.forEach(([lat, lon]) => {
+    const pos = ll2v(lat, lon, 1.009);
+    const d = new THREE.Mesh(
+      new THREE.SphereGeometry(0.008, 8, 8),
+      new THREE.MeshBasicMaterial({ color: 0x00ffcc, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending })
+    );
+    d.position.copy(pos); world.add(d);
+    const h = new THREE.Mesh(
+      new THREE.SphereGeometry(0.02, 8, 8),
+      new THREE.MeshBasicMaterial({ color: 0x00d4ff, transparent: true, opacity: 0.12, blending: THREE.AdditiveBlending, depthWrite: false })
+    );
+    h.position.copy(pos); world.add(h);
+  });
+
+  // ── Pool total de arcos ────────────────────────────────────
+  const allArcs = [...cableArcs, ...pipeArcs, ...shipArcs];
+
+  function resetArc(arc) {
+    arc.progress = 0;
+    arc.phase = 'in';
+    arc.delay = Math.floor(rnd(0, 80));
+    arc.mat.opacity = 0;
+    arc.dotM.opacity = 0;
+  }
+
+  function tickArc(arc) {
+    if (arc.delay > 0) { arc.delay--; return; }
+    const spd = arc.speed;
+
+    if (arc.phase === 'in') {
+      arc.mat.opacity = Math.min(arc.mat.opacity + 0.02, arc.lineOpMax);
+      arc.dotM.opacity = Math.min(arc.dotM.opacity + 0.05, arc.dotOpMax);
+      if (arc.mat.opacity >= arc.lineOpMax) arc.phase = 'travel';
+    }
+    if (arc.phase === 'travel' || arc.phase === 'in') {
+      arc.progress = Math.min(arc.progress + spd, 1);
+      arc.dot.position.copy(arc.curve.getPoint(arc.progress));
+      if (arc.progress >= 1) arc.phase = 'out';
+    }
+    if (arc.phase === 'out') {
+      arc.mat.opacity    = Math.max(arc.mat.opacity    - 0.018, 0);
+      arc.dotM.opacity   = Math.max(arc.dotM.opacity   - 0.04,  0);
+      if (arc.mat.opacity <= 0) resetArc(arc);
+    }
+  }
+
+  // ── Mouse drag (rotar) ────────────────────────────────────
+  let isDragging = false, prevX = 0, prevY = 0;
+  let velX = 0, velY = 0;          // inercia
+  let autoRot = true;
+
+  canvas.addEventListener('mousedown', e => {
+    isDragging = true; autoRot = false;
+    prevX = e.clientX; prevY = e.clientY;
+    canvas.style.cursor = 'grabbing';
+  });
+  window.addEventListener('mouseup', () => {
+    isDragging = false;
+    canvas.style.cursor = 'grab';
+    // reanudar autorrotación suave tras 2s sin tocar
+    setTimeout(() => { autoRot = true; }, 2000);
+  });
+  window.addEventListener('mousemove', e => {
+    if (!isDragging) return;
+    const dx = e.clientX - prevX;
+    const dy = e.clientY - prevY;
+    velX = dx * 0.005;
+    velY = dy * 0.005;
+    world.rotation.y += velX;
+    world.rotation.x += velY;
+    world.rotation.x = Math.max(-1.4, Math.min(1.4, world.rotation.x));
+    prevX = e.clientX; prevY = e.clientY;
+  });
+
+  // Touch (móvil)
+  canvas.addEventListener('touchstart', e => {
+    isDragging = true; autoRot = false;
+    prevX = e.touches[0].clientX; prevY = e.touches[0].clientY;
+  }, { passive: true });
+  canvas.addEventListener('touchend', () => {
+    isDragging = false;
+    setTimeout(() => { autoRot = true; }, 2000);
+  });
+  canvas.addEventListener('touchmove', e => {
+    if (!isDragging) return;
+    const dx = e.touches[0].clientX - prevX;
+    const dy = e.touches[0].clientY - prevY;
+    velX = dx * 0.005;
+    velY = dy * 0.005;
+    world.rotation.y += velX;
+    world.rotation.x += velY;
+    world.rotation.x = Math.max(-1.4, Math.min(1.4, world.rotation.x));
+    prevX = e.touches[0].clientX; prevY = e.touches[0].clientY;
+  }, { passive: true });
+
+  // Scroll → zoom
+  canvas.addEventListener('wheel', e => {
+    e.preventDefault();
+    camera.position.z = Math.max(1.5, Math.min(5, camera.position.z + e.deltaY * 0.003));
+  }, { passive: false });
+
+  // ── Animación principal ───────────────────────────────────
+  let frame = 0;
+
+  function animate() {
+    requestAnimationFrame(animate);
+    frame++;
+
+    // Autorrotación + inercia
+    if (autoRot) {
+      world.rotation.y += 0.009; // x5 vs original 0.0018
+    } else if (!isDragging) {
+      velX *= 0.92; velY *= 0.92;
+      world.rotation.y += velX;
+      world.rotation.x += velY;
+    }
+
+    // Arcos
+    allArcs.forEach(tickArc);
+
+    // Pulso sanciones
+    sanctionDots.forEach(s => {
+      s.t += 0.05;
+      s.halo.material.opacity = 0.1 + 0.15 * Math.abs(Math.sin(s.t));
+      s.halo.scale.setScalar(1 + 0.3 * Math.abs(Math.sin(s.t * 0.7)));
+    });
+
+    renderer.render(scene, camera);
+  }
+
+  animate();
+})();
+</script>
+{% endblock %}

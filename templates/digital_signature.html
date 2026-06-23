@@ -1,0 +1,674 @@
+{% extends "base.html" %}
+
+{% block title %}Firma Digital - Rutas Óptimas{% endblock %}
+
+{% block content %}
+<div class="digital-signature-container">
+    <div class="signature-header">
+        <h1>📄 Sistema de Firma Digital</h1>
+        <p>Firma y verifica documentos PDF de forma segura usando criptografía RSA</p>
+    </div>
+
+    <div class="signature-grid">
+        <!-- Panel de Firma -->
+        <div class="signature-section">
+            <div class="section-header">
+                <h2>🔏 Firmar Documento PDF</h2>
+                <p>Sube un PDF para firmarlo digitalmente</p>
+            </div>
+            
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📤</div>
+                <h3>Arrastra tu PDF aquí</h3>
+                <p>o haz click para seleccionar</p>
+                <input type="file" id="pdfFile" accept=".pdf" style="display: none;">
+                <button class="btn btn-primary" onclick="document.getElementById('pdfFile').click()">
+                    Seleccionar Archivo
+                </button>
+            </div>
+            
+            <div id="fileInfo" class="file-info" style="display: none;">
+                <h4>Archivo seleccionado:</h4>
+                <div class="file-details">
+                    <span id="fileName"></span>
+                    <span id="fileSize"></span>
+                </div>
+                <button id="signButton" class="btn btn-success" style="width: 100%; margin-top: 1rem;">
+                    🚀 Firmar y Descargar
+                </button>
+            </div>
+            
+            <div class="signature-info">
+                <h4>🔒 ¿Cómo funciona?</h4>
+                <ul>
+                    <li>El sistema genera un hash único del documento</li>
+                    <li>Se firma el hash con una clave privada RSA</li>
+                    <li>La firma se incrusta en el PDF</li>
+                    <li>Se puede verificar en cualquier momento</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Panel de Verificación -->
+        <div class="signature-section">
+            <div class="section-header">
+                <h2>✅ Verificar Firma</h2>
+                <p>Verifica la autenticidad de un PDF firmado</p>
+            </div>
+            
+            <div class="upload-area" id="verifyArea">
+                <div class="upload-icon">🔍</div>
+                <h3>Arrastra PDF firmado aquí</h3>
+                <p>o haz click para seleccionar</p>
+                <input type="file" id="signedPdfFile" accept=".pdf" style="display: none;">
+                <button class="btn btn-primary" onclick="document.getElementById('signedPdfFile').click()">
+                    Seleccionar Archivo
+                </button>
+            </div>
+            
+            <div id="verifyFileInfo" class="file-info" style="display: none;">
+                <h4>Archivo seleccionado:</h4>
+                <div class="file-details">
+                    <span id="verifyFileName"></span>
+                    <span id="verifyFileSize"></span>
+                </div>
+                <button id="verifyButton" class="btn btn-info" style="width: 100%; margin-top: 1rem;">
+                    🔍 Verificar Firma
+                </button>
+            </div>
+            
+            <div id="verificationResult" class="verification-result" style="display: none;">
+                <h4>Resultado de Verificación:</h4>
+                <div id="resultContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Historial de Documentos -->
+    <div class="documents-history">
+        <h2>📋 Historial de Documentos</h2>
+        
+        <div class="documents-controls">
+            <button id="refreshDocs" class="btn btn-outline">🔄 Actualizar</button>
+            <div class="filter-controls">
+                <select id="filterStatus">
+                    <option value="all">Todos los estados</option>
+                    <option value="verified">Solo verificados</option>
+                    <option value="not_verified">Solo no verificados</option>
+                </select>
+            </div>
+        </div>
+        
+        <div id="documentsList" class="documents-list">
+            <!-- Los documentos se cargarán aquí dinámicamente -->
+            <div class="loading-docs">🔄 Cargando documentos...</div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    class DigitalSignatureManager {
+        constructor() {
+            this.initEventListeners();
+            this.loadDocuments();
+        }
+        
+        initEventListeners() {
+            // Drag and drop para subida
+            this.setupDragDrop('uploadArea', 'pdfFile');
+            this.setupDragDrop('verifyArea', 'signedPdfFile');
+            
+            // Eventos de selección de archivos
+            document.getElementById('pdfFile').addEventListener('change', (e) => this.handleFileSelect(e, 'file'));
+            document.getElementById('signedPdfFile').addEventListener('change', (e) => this.handleFileSelect(e, 'verify'));
+            
+            // Botones de acción
+            document.getElementById('signButton').addEventListener('click', () => this.signDocument());
+            document.getElementById('verifyButton').addEventListener('click', () => this.verifySignature());
+            document.getElementById('refreshDocs').addEventListener('click', () => this.loadDocuments());
+            document.getElementById('filterStatus').addEventListener('change', () => this.loadDocuments());
+        }
+        
+        setupDragDrop(dropZoneId, fileInputId) {
+            const dropZone = document.getElementById(dropZoneId);
+            const fileInput = document.getElementById(fileInputId);
+            
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.style.backgroundColor = '#e9ecef';
+            });
+            
+            dropZone.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                dropZone.style.backgroundColor = '';
+            });
+            
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.style.backgroundColor = '';
+                const files = e.dataTransfer.files;
+                if (files.length > 0 && files[0].type === 'application/pdf') {
+                    fileInput.files = files;
+                    this.handleFileSelect({ target: fileInput }, dropZoneId === 'uploadArea' ? 'file' : 'verify');
+                } else {
+                    alert('Por favor, suelta solo archivos PDF');
+                }
+            });
+        }
+        
+        handleFileSelect(event, type) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            if (file.type !== 'application/pdf') {
+                alert('Por favor, selecciona solo archivos PDF');
+                return;
+            }
+            
+            if (type === 'file') {
+                document.getElementById('fileName').textContent = file.name;
+                document.getElementById('fileSize').textContent = this.formatFileSize(file.size);
+                document.getElementById('fileInfo').style.display = 'block';
+            } else {
+                document.getElementById('verifyFileName').textContent = file.name;
+                document.getElementById('verifyFileSize').textContent = this.formatFileSize(file.size);
+                document.getElementById('verifyFileInfo').style.display = 'block';
+                document.getElementById('verificationResult').style.display = 'none';
+            }
+        }
+        
+        formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        async signDocument() {
+            const fileInput = document.getElementById('pdfFile');
+            const file = fileInput.files[0];
+            const button = document.getElementById('signButton');
+            
+            if (!file) {
+                alert('Por favor, selecciona un archivo PDF');
+                return;
+            }
+            
+            const originalText = button.textContent;
+            button.textContent = '🔄 Firmando...';
+            button.disabled = true;
+            
+            try {
+                const formData = new FormData();
+                formData.append('pdf_file', file);
+                
+                const response = await fetch('/api/digital-signature/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    
+                    // Descargar archivo firmado
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `firmado_${file.name}`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    
+                    // Resetear formulario
+                    fileInput.value = '';
+                    document.getElementById('fileInfo').style.display = 'none';
+                    
+                    // Recargar documentos
+                    this.loadDocuments();
+                    
+                    this.showMessage('✅ Documento firmado y descargado correctamente', 'success');
+                } else {
+                    const error = await response.json();
+                    throw new Error(error.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                this.showMessage('❌ Error al firmar documento: ' + error.message, 'error');
+            } finally {
+                button.textContent = originalText;
+                button.disabled = false;
+            }
+        }
+        
+        async verifySignature() {
+            const fileInput = document.getElementById('signedPdfFile');
+            const file = fileInput.files[0];
+            const button = document.getElementById('verifyButton');
+            const resultDiv = document.getElementById('verificationResult');
+            const resultContent = document.getElementById('resultContent');
+            
+            if (!file) {
+                alert('Por favor, selecciona un archivo PDF firmado');
+                return;
+            }
+            
+            const originalText = button.textContent;
+            button.textContent = '🔄 Verificando...';
+            button.disabled = true;
+            resultContent.innerHTML = '<div class="loading">🔍 Verificando firma...</div>';
+            resultDiv.style.display = 'block';
+            
+            try {
+                const formData = new FormData();
+                formData.append('signed_pdf', file);
+                
+                const response = await fetch('/api/digital-signature/verify', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    if (data.valid) {
+                        resultContent.innerHTML = `
+                            <div class="result success">
+                                <h4>✅ ${data.message}</h4>
+                                <div class="result-details">
+                                    <p><strong>Estado:</strong> Firma válida</p>
+                                    <p><strong>Autenticidad:</strong> Documento no modificado</p>
+                                    ${data.document_exists ? '<p><strong>Registro:</strong> Documento encontrado en base de datos</p>' : ''}
+                                    ${data.verified_at ? '<p><strong>Verificado:</strong> ' + new Date(data.verified_at).toLocaleString() + '</p>' : ''}
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        resultContent.innerHTML = `
+                            <div class="result error">
+                                <h4>❌ ${data.message}</h4>
+                                <div class="result-details">
+                                    <p><strong>Estado:</strong> Firma inválida</p>
+                                    <p><strong>Posibles causas:</strong></p>
+                                    <ul>
+                                        <li>El documento ha sido modificado</li>
+                                        <li>La firma no es válida</li>
+                                        <li>El formato del archivo es incorrecto</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        `;
+                    }
+                } else {
+                    resultContent.innerHTML = `
+                        <div class="result error">
+                            <h4>❌ Error en verificación</h4>
+                            <p>${data.error}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                resultContent.innerHTML = `
+                    <div class="result error">
+                        <h4>❌ Error de conexión</h4>
+                        <p>No se pudo completar la verificación</p>
+                    </div>
+                `;
+            } finally {
+                button.textContent = originalText;
+                button.disabled = false;
+            }
+        }
+        
+        async loadDocuments() {
+            const docsList = document.getElementById('documentsList');
+            const filterStatus = document.getElementById('filterStatus').value;
+            
+            docsList.innerHTML = '<div class="loading-docs">🔄 Cargando documentos...</div>';
+            
+            try {
+                const response = await fetch('/api/digital-signature/documents');
+                const data = await response.json();
+                
+                if (data.success) {
+                    let documents = data.documents;
+                    
+                    // Aplicar filtro
+                    if (filterStatus === 'verified') {
+                        documents = documents.filter(doc => doc.signature_verified);
+                    } else if (filterStatus === 'not_verified') {
+                        documents = documents.filter(doc => !doc.signature_verified);
+                    }
+                    
+                    if (documents.length === 0) {
+                        docsList.innerHTML = '<div class="no-docs">No se encontraron documentos</div>';
+                        return;
+                    }
+                    
+                    let html = '';
+                    documents.forEach(doc => {
+                        html += `
+                            <div class="document-card ${doc.signature_verified ? 'verified' : 'not-verified'}">
+                                <div class="doc-header">
+                                    <h4>${doc.filename}</h4>
+                                    <span class="doc-status ${doc.signature_verified ? 'status-verified' : 'status-not-verified'}">
+                                        ${doc.signature_verified ? '✅ Verificado' : '❌ No verificado'}
+                                    </span>
+                                </div>
+                                <div class="doc-details">
+                                    <p><strong>Subido:</strong> ${new Date(doc.created_at).toLocaleString()}</p>
+                                    ${doc.verified_at ? `<p><strong>Verificado:</strong> ${new Date(doc.verified_at).toLocaleString()}</p>` : ''}
+                                    <p><strong>Hash original:</strong> <code>${doc.original_hash.substring(0, 16)}...</code></p>
+                                    <p><strong>Hash firmado:</strong> <code>${doc.signed_hash.substring(0, 16)}...</code></p>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    docsList.innerHTML = html;
+                } else {
+                    docsList.innerHTML = '<div class="error-docs">❌ Error al cargar documentos</div>';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                docsList.innerHTML = '<div class="error-docs">❌ Error de conexión</div>';
+            }
+        }
+        
+        showMessage(message, type) {
+            // Crear mensaje temporal
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `flash-message ${type}`;
+            messageDiv.textContent = message;
+            messageDiv.style.cssText = `
+                position: fixed;
+                top: 100px;
+                right: 20px;
+                z-index: 10000;
+                max-width: 300px;
+                animation: slideInRight 0.3s ease;
+            `;
+            
+            document.body.appendChild(messageDiv);
+            
+            // Auto-eliminar después de 5 segundos
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 5000);
+        }
+    }
+    
+    // Inicializar cuando el DOM esté listo
+    document.addEventListener('DOMContentLoaded', () => {
+        window.signatureManager = new DigitalSignatureManager();
+    });
+</script>
+
+<style>
+    .digital-signature-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+    
+    .signature-header {
+        text-align: center;
+        margin-bottom: 3rem;
+        padding: 2rem;
+        background: linear-gradient(135deg, #007bff, #0056b3);
+        color: white;
+        border-radius: 12px;
+    }
+    
+    .signature-header h1 {
+        font-size: 2.5rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .signature-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        margin-bottom: 3rem;
+    }
+    
+    .signature-section {
+        background: white;
+        padding: 2rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
+    .section-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    
+    .section-header h2 {
+        color: #333;
+        margin-bottom: 0.5rem;
+    }
+    
+    .upload-area {
+        border: 2px dashed #007bff;
+        border-radius: 10px;
+        padding: 3rem 2rem;
+        text-align: center;
+        margin-bottom: 2rem;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+    
+    .upload-area:hover {
+        background-color: #f8f9ff;
+        border-color: #0056b3;
+    }
+    
+    .upload-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+    }
+    
+    .file-info {
+        background: #f8f9fa;
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+    }
+    
+    .file-details {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 0.5rem;
+    }
+    
+    .signature-info, .verification-info {
+        background: #e7f3ff;
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin-top: 1.5rem;
+    }
+    
+    .signature-info ul, .verification-info ul {
+        margin-left: 1.5rem;
+        color: #666;
+    }
+    
+    .signature-info li, .verification-info li {
+        margin-bottom: 0.5rem;
+    }
+    
+    .verification-result {
+        margin-top: 1.5rem;
+    }
+    
+    .result {
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin-top: 1rem;
+    }
+    
+    .result.success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+    
+    .result.error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+    
+    .result-details {
+        margin-top: 1rem;
+    }
+    
+    .result-details p {
+        margin-bottom: 0.5rem;
+    }
+    
+    .documents-history {
+        background: white;
+        padding: 2rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
+    .documents-controls {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    
+    .documents-list {
+        display: grid;
+        gap: 1rem;
+        max-height: 500px;
+        overflow-y: auto;
+    }
+    
+    .document-card {
+        background: #f8f9fa;
+        padding: 1.5rem;
+        border-radius: 8px;
+        border-left: 4px solid #6c757d;
+        transition: transform 0.2s ease;
+    }
+    
+    .document-card.verified {
+        border-left-color: #28a745;
+        background: #f8fff8;
+    }
+    
+    .document-card.not-verified {
+        border-left-color: #dc3545;
+        background: #fff8f8;
+    }
+    
+    .document-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    
+    .doc-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    
+    .doc-header h4 {
+        margin: 0;
+        color: #333;
+    }
+    
+    .doc-status {
+        padding: 0.25rem 0.75rem;
+        border-radius: 15px;
+        font-size: 0.8rem;
+        font-weight: bold;
+    }
+    
+    .status-verified {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .status-not-verified {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    
+    .doc-details {
+        color: #666;
+    }
+    
+    .doc-details p {
+        margin-bottom: 0.5rem;
+        font-size: 0.9rem;
+    }
+    
+    .doc-details code {
+        background: #e9ecef;
+        padding: 0.1rem 0.3rem;
+        border-radius: 3px;
+        font-family: monospace;
+    }
+    
+    .loading-docs, .no-docs, .error-docs {
+        text-align: center;
+        padding: 3rem;
+        color: #666;
+        background: #f8f9fa;
+        border-radius: 8px;
+        border: 2px dashed #dee2e6;
+    }
+    
+    .loading {
+        text-align: center;
+        padding: 1rem;
+    }
+    
+    @keyframes slideInRight {
+        from {
+            opacity: 0;
+            transform: translateX(100%);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .signature-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .digital-signature-container {
+            padding: 1rem;
+        }
+        
+        .doc-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .documents-controls {
+            flex-direction: column;
+            align-items: stretch;
+        }
+    }
+</style>
+{% endblock %}

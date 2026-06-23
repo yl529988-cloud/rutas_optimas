@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}Mis Viajes - Rutas Óptimas{% endblock %}
+
+{% block content %}
+<div class="trips-container">
+    <div class="trips-header">
+        <h1>Historial de Viajes</h1>
+        <p>Revisa todos los viajes que has realizado</p>
+    </div>
+    
+    {% if trips %}
+        <div class="trips-list">
+            {% for trip in trips %}
+                <div class="trip-card">
+                    <div class="trip-main-info">
+                        <h3>{{ trip.start_location }} → {{ trip.end_location }}</h3>
+                        <div class="trip-details">
+                            {% if trip.route_details %}
+                                {% if trip.route_details.distance is defined and trip.route_details.distance is not none %}
+                                <div class="trip-detail">
+                                    <span class="detail-label">Distancia:</span>
+                                    <span class="detail-value">{{ trip.route_details.distance|round(2) }} km</span>
+                                </div>
+                                {% endif %}
+                                
+                                {% if trip.route_details.estimated_time is defined and trip.route_details.estimated_time is not none %}
+                                <div class="trip-detail">
+                                    <span class="detail-label">Tiempo estimado:</span>
+                                    <span class="detail-value">{{ trip.route_details.estimated_time|round(2) }} min</span>
+                                </div>
+                                {% endif %}
+                                
+                                {% if trip.route_details.path is defined and trip.route_details.path %}
+                                <div class="trip-detail">
+                                    <span class="detail-label">Ruta:</span>
+                                    <span class="detail-value">{{ trip.route_details.path|join(' → ') }}</span>
+                                </div>
+                                {% endif %}
+                                
+                                <!-- Para viajes del nuevo sistema de mapas -->
+                                {% if trip.route_details.route_options is defined %}
+                                <div class="trip-detail">
+                                    <span class="detail-label">Tipo:</span>
+                                    <span class="detail-value">Ruta con múltiples opciones</span>
+                                </div>
+                                {% endif %}
+                                
+                            {% else %}
+                                <div class="trip-detail">
+                                    <span class="detail-label">Estado:</span>
+                                    <span class="detail-value">Sin detalles de ruta</span>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="trip-meta">
+                        <div class="trip-date">
+                            {{ trip.created_at.strftime('%d/%m/%Y %H:%M') }}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="no-trips">
+            <h2>No hay viajes registrados</h2>
+            <p>Comienza a usar el sistema para encontrar rutas óptimas y verás tu historial aquí.</p>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-primary">Encontrar Ruta</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

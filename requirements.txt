@@ -1,0 +1,15 @@
+Flask
+gunicorn
+requests
+opencv-python
+numpy
+Flask-Migrate
+flask-sqlalchemy
+flask-bcrypt
+python-dotenv
+geopy
+polyline
+cryptography
+PyJWT
+pymysql
+psycopg2-binary
