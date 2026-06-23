@@ -57,6 +57,7 @@ bcrypt = Bcrypt(app)
 from flask_migrate import Migrate
 migrate = Migrate(app, db)
 
+
 # Configuración de reCAPTCHA v2
 RECAPTCHA_SECRET_KEY = os.environ.get('RECAPTCHA_SECRET_KEY', '6LeU7SYsAAAAAEh5HWnKMR3zYss9DPfgQos3J3Pj')
 RECAPTCHA_SITE_KEY = os.environ.get('RECAPTCHA_SITE_KEY', '6LeU7SYsAAAAACsfG5NL1xCecoHl1FH0pdLWiBPb')
@@ -1677,18 +1678,23 @@ def init_db():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 # ============================================
+# Inicializar base de datos
+# ============================================
+
+with app.app_context():
+    try:
+        db.create_all()
+        print("✅ Base de datos inicializada")
+    except Exception as e:
+        print(f"❌ Error inicializando base de datos: {e}")
+
+# ============================================
 # Punto de entrada principal
 # ============================================
+
 if __name__ == '__main__':
-    with app.app_context():
-        try:
-            # Crear todas las tablas si no existen
-            db.create_all()
-            print("✅ Base de datos inicializada")
-            
-        except Exception as e:
-            print(f"❌ Error inicializando base de datos: {e}")
-    
+    app.run(debug=True)
+
     print("🚀 Iniciando aplicación con reCAPTCHA v2...")
     print(f"🔑 Site Key: {RECAPTCHA_SITE_KEY}")
     print(f"📷 Face Recognition: FACE-API.JS")
