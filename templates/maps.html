@@ -1501,18 +1501,44 @@ class MapsSystem {
       });
       const data = await res.json();
 
-      if (data.success) {
-        this.allRoutes = data.route_options.all_routes;
-        this.renderRoutes();
-        this.drawRoutesOnMap();
-        this.$('routesSection').style.display = 'block';
-        this.$('clearRoute').style.display    = 'block';
-        this.$('fitBounds').style.display     = 'block';
-        this.fitAll();
-        this.showToast(`✓ ${this.allRoutes.length} rutas encontradas`, 'success');
-      } else {
-        this.showToast(data.error || 'Error calculando rutas', 'error');
-      }
+if (data.success) {
+  this.allRoutes = data.route_options.all_routes;
+
+  this.renderRoutes();
+  this.drawRoutesOnMap();
+
+  this.$('routesSection').style.display = 'block';
+  this.$('clearRoute').style.display    = 'block';
+  this.$('fitBounds').style.display     = 'block';
+
+  this.fitAll();
+
+  // GUARDAR VIAJE EN LA BASE DE DATOS
+  try {
+    await fetch('/save_trip', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        origin: this.$('startAddress').value,
+        destination: this.$('endAddress').value,
+        route_details: {
+          route_type: this.currentFilter,
+          routes_found: this.allRoutes.length,
+          routes: this.allRoutes
+        }
+      })
+    });
+  } catch (err) {
+    console.error('Error al guardar viaje:', err);
+  }
+
+  this.showToast(`✓ ${this.allRoutes.length} rutas encontradas`, 'success');
+
+} else {
+  this.showToast(data.error || 'Error calculando rutas', 'error');
+}
     } catch {
       this.showToast('Error de conexión con el servidor', 'error');
     } finally {
